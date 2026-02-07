@@ -26,33 +26,37 @@
   <pre id="result"></pre>
 
   <script>
-    const supabase = window.supabase.createClient(
-      "https://lhwlvleocakggpbbpzyx.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
-    );
+  const supabase = window.supabase.createClient(
+    "https://lhwlvleocakggpbbpzyx.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
+  );
 
-    document.getElementById("booking-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
+  document.getElementById("booking-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-      const result = document.getElementById("result");
+    const result = document.getElementById("result");
 
-      const booking = {
-        service_address: document.getElementById("service_address").value,
-        scheduled_start: document.getElementById("start").value,
-        scheduled_end: document.getElementById("end").value,
-        status: "pending"
-      };
+    const booking = {
+      customer_id: "d95f5c8c-9229-4058-b5c9-fbe3f4ff445b",
+      vehicle_id: "3281db98-4c8e-4f4e-ab1d-131c782ed3d8",
+      service_variant_id: "d27a196d-8be2-4e50-978c-02d83bb52995",
+      service_address: document.getElementById("service_address").value,
+      scheduled_start: document.getElementById("start").value,
+      scheduled_end: document.getElementById("end").value,
+      status: "pending"
+    };
 
-      const { error } = await supabase
-        .from("bookings")
-        .insert(booking);
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert([booking]);
 
-      if (error) {
-        result.textContent = error.message;
-      } else {
-        result.textContent = "Booking submitted successfully.";
-      }
-    });
-  </script>
-</body>
-</html>
+    if (error) {
+      console.error("INSERT ERROR:", error);
+      result.textContent = error.message;
+    } else {
+      console.log("BOOKING INSERTED:", data);
+      result.textContent = "Booking submitted successfully.";
+    }
+  });
+</script>
+
