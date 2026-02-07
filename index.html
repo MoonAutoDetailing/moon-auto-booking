@@ -2,190 +2,164 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Moon Auto Detailing – Book a Detail</title>
-
-  <!-- Supabase JS v2 -->
+  <title>Book a Detail</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f6f8fb;
-      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f7fb;
       padding: 40px;
     }
-
     .card {
       max-width: 520px;
       margin: auto;
-      background: #ffffff;
+      background: white;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 10px 25px rgba(0,0,0,.08);
     }
-
-    h1 {
+    h2 {
       text-align: center;
-      color: #6fa8dc;
       margin-bottom: 25px;
+      color: #4a90e2;
     }
-
     label {
-      font-weight: bold;
       display: block;
-      margin-top: 14px;
+      margin-top: 15px;
+      font-weight: 600;
     }
-
     input, select, button {
       width: 100%;
       padding: 10px;
       margin-top: 6px;
       border-radius: 6px;
-      border: 1px solid #ccc;
+      border: 1px solid #dcdcdc;
       font-size: 14px;
     }
-
     button {
-      margin-top: 24px;
-      background: #6fa8dc;
+      margin-top: 25px;
+      background: #4a90e2;
       color: white;
+      font-weight: 700;
       border: none;
-      font-size: 16px;
       cursor: pointer;
     }
-
     button:hover {
-      background: #5a94c8;
-    }
-
-    pre {
-      margin-top: 20px;
-      font-size: 13px;
-      white-space: pre-wrap;
+      opacity: .95;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="card">
-    <h1>Book a Detail</h1>
+<div class="card">
+  <h2>Book a Detail</h2>
 
-    <form id="booking-form">
+  <label>Full Name</label>
+  <input id="name" required>
 
-      <label>Full Name</label>
-      <input id="full_name" required />
+  <label>Email</label>
+  <input id="email" type="email" required>
 
-      <label>Email</label>
-      <input id="email" type="email" required />
+  <label>Phone</label>
+  <input id="phone" required>
 
-      <label>Phone</label>
-      <input id="phone" required />
+  <label>Service Address</label>
+  <input id="address" required>
 
-      <label>Service Address</label>
-      <input id="service_address" required />
+  <label>Vehicle Year</label>
+  <input id="year" required>
 
-      <label>Vehicle Year</label>
-      <input id="vehicle_year" type="number" required />
+  <label>Vehicle Make</label>
+  <input id="make" required>
 
-      <label>Vehicle Make</label>
-      <input id="vehicle_make" required />
+  <label>Vehicle Model</label>
+  <input id="model" required>
 
-      <label>Vehicle Model</label>
-      <input id="vehicle_model" required />
+  <label>Vehicle Size</label>
+  <select id="vehicleSize" required>
+    <option value="">Select size</option>
+    <option value="compact">Compact</option>
+    <option value="midsized">Midsized</option>
+    <option value="oversized">Oversized</option>
+  </select>
 
-      <label>Vehicle Size</label>
-      <select id="vehicle_size" required>
-        <option value="">Select size</option>
-        <option value="compact">Compact</option>
-        <option value="midsized">Midsized</option>
-        <option value="oversized">Oversized</option>
-      </select>
+  <label>License Plate</label>
+  <input id="plate" required>
 
-      <label>License Plate</label>
-      <input id="license_plate" required />
+  <label>Select Service</label>
+  <select id="serviceSelect" required disabled>
+    <option>Select vehicle size first</option>
+  </select>
 
-      <label>Select Service</label>
-      <select id="service_variant" required>
-        <option value="">Select vehicle size first</option>
-      </select>
+  <label>Start</label>
+  <input type="datetime-local" id="start" required>
 
-      <label>Start</label>
-      <input id="start" type="datetime-local" required />
+  <label>End</label>
+  <input type="datetime-local" id="end" required>
 
-      <label>End</label>
-      <input id="end" type="datetime-local" required />
+  <button onclick="submitBooking()">Submit Booking</button>
+</div>
 
-      <button type="submit">Submit Booking</button>
-    </form>
+<script>
+  const supabase = window.supabase.createClient(
+    "https://YOUR_PROJECT_ID.supabase.co",
+    "YOUR_PUBLIC_ANON_KEY"
+  );
 
-    <pre id="result"></pre>
-  </div>
+  const vehicleSizeEl = document.getElementById("vehicleSize");
+  const serviceSelect = document.getElementById("serviceSelect");
 
-  <script>
-    const supabaseClient = window.supabase.createClient(
-      "https://lhwlvleocakggpbbpzyx.supabase.co",
-      "YOUR_PUBLIC_ANON_KEY"
-    );
+  vehicleSizeEl.addEventListener("change", loadServices);
 
-    const vehicleSizeSelect = document.getElementById("vehicle_size");
-    const serviceSelect = document.getElementById("service_variant");
-    const resultBox = document.getElementById("result");
+  async function loadServices() {
+    const size = vehicleSizeEl.value;
+    serviceSelect.innerHTML = "";
+    serviceSelect.disabled = true;
 
-    // 🔥 LOAD SERVICES BY VEHICLE SIZE
-    async function loadServicesForSize(size) {
-      serviceSelect.innerHTML = `<option value="">Loading services...</option>`;
-
-      const { data, error } = await supabaseClient
-        .from("service_variants")
-        .select(`
-          id,
-          price,
-          duration_minutes,
-          services:service_id (
-            category,
-            level
-          )
-        `)
-        .eq("vehicle_size", size.toLowerCase())
-        .eq("active", true);
-
-      if (error) {
-        console.error(error);
-        serviceSelect.innerHTML = `<option value="">Error loading services</option>`;
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        serviceSelect.innerHTML = `<option value="">No services available</option>`;
-        return;
-      }
-
-      serviceSelect.innerHTML = `<option value="">Select a service</option>`;
-
-      data.forEach(row => {
-        const option = document.createElement("option");
-        option.value = row.id;
-        option.textContent =
-          `${row.services.category} – Level ${row.services.level} ($${row.price})`;
-        serviceSelect.appendChild(option);
-      });
+    if (!size) {
+      serviceSelect.innerHTML = "<option>Select vehicle size first</option>";
+      return;
     }
 
-    vehicleSizeSelect.addEventListener("change", (e) => {
-      const size = e.target.value;
-      serviceSelect.innerHTML = `<option value="">Select vehicle size first</option>`;
-      if (size) loadServicesForSize(size);
+    const { data, error } = await supabase
+      .from("service_variants")
+      .select(`
+        id,
+        price,
+        services (
+          category,
+          level
+        )
+      `)
+      .eq("vehicle_size", size)
+      .eq("active", true)
+      .order("services.category")
+      .order("services.level");
+
+    if (error || !data || data.length === 0) {
+      serviceSelect.innerHTML = "<option>No services available</option>";
+      return;
+    }
+
+    data.forEach(row => {
+      const label =
+        `${row.services.category} – Level ${row.services.level} ($${row.price})`;
+
+      const option = document.createElement("option");
+      option.value = row.id; // service_variant.id
+      option.textContent = label;
+      serviceSelect.appendChild(option);
     });
 
-    // SUBMIT (booking logic already proven working earlier)
-    document.getElementById("booking-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      resultBox.textContent = "Submitting booking...";
-      resultBox.style.color = "black";
-      resultBox.textContent = "Booking submitted (service dropdown test complete)";
-    });
-  </script>
+    serviceSelect.disabled = false;
+  }
+
+  async function submitBooking() {
+    alert("Booking submit logic goes here — pipeline is now clean.");
+  }
+</script>
 
 </body>
 </html>
