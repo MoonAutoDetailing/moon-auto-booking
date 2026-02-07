@@ -42,12 +42,13 @@
 
 <script>
   /* ============================
-     SUPABASE CONFIG
+     SUPABASE CONFIG (FINAL)
      ============================ */
   const SUPABASE_URL = "https://lhwlvleocakggpbbpzyx.supabase.co";
-  const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_KEY_HERE";
+  const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI";
 
-  // IMPORTANT: do NOT name this `supabase`
+  // DO NOT name this `supabase`
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const status = document.getElementById("status");
 
@@ -64,7 +65,7 @@
     const { error } = await sb.auth.signInWithOtp({
       email,
       options: {
-        // MUST EXACTLY MATCH ALLOWLIST
+        // MUST EXACTLY MATCH SUPABASE ALLOWLIST
         emailRedirectTo: "https://moon-auto-booking.vercel.app/admin.html"
       }
     });
