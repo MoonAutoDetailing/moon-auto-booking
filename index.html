@@ -2,23 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Moon Auto Detailing – Booking</title>
+  <title>Moon Auto Detailing – Book a Detail</title>
 
+  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 500px;
+      max-width: 600px;
       margin: 40px auto;
+    }
+    h1 {
+      margin-bottom: 20px;
     }
     input, select, button {
       width: 100%;
       padding: 10px;
       margin-top: 10px;
+      font-size: 16px;
     }
     button {
       cursor: pointer;
+      margin-top: 20px;
     }
     pre {
       margin-top: 20px;
@@ -32,34 +38,33 @@
 
 <form id="booking-form">
 
-  <!-- Customer -->
+  <!-- CUSTOMER INFO -->
   <input id="full_name" placeholder="Full Name" required />
   <input id="email" type="email" placeholder="Email" required />
   <input id="phone" placeholder="Phone" required />
   <input id="service_address" placeholder="Service Address" required />
 
-  <!-- Vehicle -->
-  <input id="vehicle_type" placeholder="Vehicle Type (e.g. Sedan, SUV)" required />
+  <!-- VEHICLE INFO -->
+  <input id="vehicle_make" placeholder="Vehicle Make (e.g. Toyota)" required />
+  <input id="vehicle_model" placeholder="Vehicle Model (e.g. Camry)" required />
+  <input id="vehicle_year" type="number" placeholder="Vehicle Year (e.g. 2019)" required />
 
   <select id="vehicle_size" required>
-    <option value="">Vehicle Size</option>
-    <option value="small">Small</option>
+    <option value="">Select Vehicle Size</option>
+    <option value="compact">Compact</option>
     <option value="midsized">Midsized</option>
     <option value="large">Large</option>
+    <option value="truck">Truck / SUV</option>
   </select>
 
   <input id="license_plate" placeholder="License Plate" required />
 
-  <!-- Service -->
+  <!-- SERVICE -->
   <select id="service_variant_id" required>
     <option value="">Select Service</option>
-    <!-- Replace or dynamically load later -->
-    <option value="d27a196d-8be2-4e50-978c-02d83bb52995">
-      Interior Detail – Midsized
-    </option>
   </select>
 
-  <!-- Schedule -->
+  <!-- TIME -->
   <label>Start</label>
   <input id="start" type="datetime-local" required />
 
@@ -67,6 +72,7 @@
   <input id="end" type="datetime-local" required />
 
   <button type="submit">Submit Booking</button>
+
 </form>
 
 <pre id="result"></pre>
@@ -74,40 +80,103 @@
 <script>
   const supabaseClient = window.supabase.createClient(
     "https://lhwlvleocakggpbbpzyx.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
+    "YOUR_ANON_KEY"
   );
 
-  document.getElementById("booking-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  const vehicleSizeSelect = document.getElementById("vehicle_size");
+  const serviceSelect = document.getElementById("service_variant_id");
 
-    const result = document.getElementById("result");
-    result.textContent = "Submitting booking...";
+  // Load services filtered by vehicle size
+  async function loadServices(vehicleSize) {
+    serviceSelect.innerHTML = '<option value="">Select Service</option>';
 
-    const payload = {
-      p_full_name: document.getElementById("full_name").value,
-      p_email: document.getElementById("email").value,
-      p_phone: document.getElementById("phone").value,
-      p_service_address: document.getElementById("service_address").value,
+    if (!vehicleSize) return;
 
-      p_vehicle_type: document.getElementById("vehicle_type").value,
-      p_vehicle_size: document.getElementById("vehicle_size").value,
-      p_license_plate: document.getElementById("license_plate").value,
-
-      p_service_variant_id: document.getElementById("service_variant_id").value,
-      p_scheduled_start: document.getElementById("start").value,
-      p_scheduled_end: document.getElementById("end").value
-    };
-
-    const { error } = await supabaseClient
-      .rpc("create_booking_with_customer", payload);
+    const { data, error } = await supabaseClient
+      .from("service_variants")
+      .select("id, price, duration_minutes, services (category)")
+      .eq("vehicle_size", vehicleSize)
+      .eq("active", true);
 
     if (error) {
       console.error(error);
-      result.textContent = "Error: " + error.message;
-    } else {
-      result.textContent = "✅ Booking submitted successfully.";
-      document.getElementById("booking-form").reset();
+      return;
     }
+
+    data.forEach((sv) => {
+      const option = document.createElement("option");
+      option.value = sv.id;
+      option.textContent =
+        `${sv.services.category} – $${sv.price} (${sv.duration_minutes} min)`;
+      serviceSelect.appendChild(option);
+    });
+  }
+
+  vehicleSizeSelect.addEventListener("change", (e) => {
+    loadServices(e.target.value);
+  });
+
+  document.getElementById("booking-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const result = document.getElementById("result");
+    result.textContent = "Submitting booking...";
+
+    // 1️⃣ Create customer
+    const { data: customer, error: customerError } = await supabaseClient
+      .from("customers")
+      .insert({
+        full_name: document.getElementById("full_name").value,
+        email: document.getElementById("email").value,
+        phone: document.getElementById("phone").value
+      })
+      .select()
+      .single();
+
+    if (customerError) {
+      result.textContent = customerError.message;
+      return;
+    }
+
+    // 2️⃣ Create vehicle (one per booking)
+    const { data: vehicle, error: vehicleError } = await supabaseClient
+      .from("vehicles")
+      .insert({
+        customer_id: customer.id,
+        make: document.getElementById("vehicle_make").value,
+        model: document.getElementById("vehicle_model").value,
+        year: parseInt(document.getElementById("vehicle_year").value),
+        vehicle_size: document.getElementById("vehicle_size").value,
+        license_plate: document.getElementById("license_plate").value
+      })
+      .select()
+      .single();
+
+    if (vehicleError) {
+      result.textContent = vehicleError.message;
+      return;
+    }
+
+    // 3️⃣ Create booking
+    const { error: bookingError } = await supabaseClient
+      .from("bookings")
+      .insert({
+        customer_id: customer.id,
+        vehicle_id: vehicle.id,
+        service_variant_id: document.getElementById("service_variant_id").value,
+        service_address: document.getElementById("service_address").value,
+        scheduled_start: document.getElementById("start").value,
+        scheduled_end: document.getElementById("end").value,
+        status: "pending"
+      });
+
+    if (bookingError) {
+      result.textContent = bookingError.message;
+      return;
+    }
+
+    result.textContent = "✅ Booking submitted successfully.";
+    document.getElementById("booking-form").reset();
+    serviceSelect.innerHTML = '<option value="">Select Service</option>';
   });
 </script>
 
