@@ -76,7 +76,6 @@
         const { data, error } = await supabaseClient
           .from("bookings")
           .insert([booking])
-          .select();
 
         if (error) {
           console.error("INSERT ERROR:", error);
