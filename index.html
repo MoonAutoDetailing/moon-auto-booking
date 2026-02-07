@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Moon Auto Detailing – Booking</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Book a Detail</h1>
+
+  <form id="booking-form">
+    <input placeholder="Full Name" id="full_name" required /><br />
+    <input placeholder="Email" id="email" required /><br />
+    <input placeholder="Phone" id="phone" required /><br />
+    <input placeholder="Service Address" id="service_address" required /><br />
+
+    <label>Start:</label>
+    <input type="datetime-local" id="start" required /><br />
+
+    <label>End:</label>
+    <input type="datetime-local" id="end" required /><br />
+
+    <button type="submit">Submit Booking</button>
+  </form>
+
+  <pre id="result"></pre>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      "https://lhwlvleocakggpbbpzyx.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
+    );
+
+    document.getElementById("booking-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const result = document.getElementById("result");
+
+      const booking = {
+        service_address: document.getElementById("service_address").value,
+        scheduled_start: document.getElementById("start").value,
+        scheduled_end: document.getElementById("end").value,
+        status: "pending"
+      };
+
+      const { error } = await supabase
+        .from("bookings")
+        .insert(booking);
+
+      if (error) {
+        result.textContent = error.message;
+      } else {
+        result.textContent = "Booking submitted successfully.";
+      }
+    });
+  </script>
+</body>
+</html>
