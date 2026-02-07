@@ -3,22 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <title>Moon Auto Detailing – Booking</title>
+
+  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      cursor: pointer;
+    }
+    pre {
+      margin-top: 20px;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
 <body>
+
   <h1>Book a Detail</h1>
 
   <form id="booking-form">
-    <input placeholder="Full Name" id="full_name" required /><br />
-    <input placeholder="Email" id="email" required /><br />
-    <input placeholder="Phone" id="phone" required /><br />
-    <input placeholder="Service Address" id="service_address" required /><br />
+    <input id="full_name" placeholder="Full Name" required />
+    <input id="email" type="email" placeholder="Email" required />
+    <input id="phone" placeholder="Phone" required />
+    <input id="service_address" placeholder="Service Address" required />
 
-    <label>Start:</label>
-    <input type="datetime-local" id="start" required /><br />
+    <label>Start</label>
+    <input id="start" type="datetime-local" required />
 
-    <label>End:</label>
-    <input type="datetime-local" id="end" required /><br />
+    <label>End</label>
+    <input id="end" type="datetime-local" required />
 
     <button type="submit">Submit Booking</button>
   </form>
@@ -26,37 +49,44 @@
   <pre id="result"></pre>
 
   <script>
-  const supabase = window.supabase.createClient(
-    "https://lhwlvleocakggpbbpzyx.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
-  );
+    // ✅ IMPORTANT: do NOT name this variable `supabase`
+    const supabaseClient = window.supabase.createClient(
+      "https://lhwlvleocakggpbbpzyx.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
+    );
 
-  document.getElementById("booking-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+    document
+      .getElementById("booking-form")
+      .addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-    const result = document.getElementById("result");
+        const result = document.getElementById("result");
+        result.textContent = "Submitting booking...";
 
-    const booking = {
-      customer_id: "d95f5c8c-9229-4058-b5c9-fbe3f4ff445b",
-      vehicle_id: "3281db98-4c8e-4f4e-ab1d-131c782ed3d8",
-      service_variant_id: "d27a196d-8be2-4e50-978c-02d83bb52995",
-      service_address: document.getElementById("service_address").value,
-      scheduled_start: document.getElementById("start").value,
-      scheduled_end: document.getElementById("end").value,
-      status: "pending"
-    };
+        const booking = {
+          customer_id: "d95f5c8c-9229-4058-b5c9-fbe3f4ff445b",
+          vehicle_id: "3281db98-4c8e-4f4e-ab1d-131c782ed3d8",
+          service_variant_id: "d27a196d-8be2-4e50-978c-02d83bb52995",
+          service_address: document.getElementById("service_address").value,
+          scheduled_start: document.getElementById("start").value,
+          scheduled_end: document.getElementById("end").value,
+          status: "pending"
+        };
 
-    const { data, error } = await supabase
-      .from("bookings")
-      .insert([booking]);
+        const { data, error } = await supabaseClient
+          .from("bookings")
+          .insert([booking])
+          .select();
 
-    if (error) {
-      console.error("INSERT ERROR:", error);
-      result.textContent = error.message;
-    } else {
-      console.log("BOOKING INSERTED:", data);
-      result.textContent = "Booking submitted successfully.";
-    }
-  });
-</script>
+        if (error) {
+          console.error("INSERT ERROR:", error);
+          result.textContent = "Error: " + error.message;
+        } else {
+          console.log("BOOKING INSERTED:", data);
+          result.textContent = "✅ Booking submitted successfully.";
+        }
+      });
+  </script>
 
+</body>
+</html>
