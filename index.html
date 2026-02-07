@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Moon Auto Detailing – Booking</title>
 
-  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -13,7 +12,7 @@
       max-width: 500px;
       margin: 40px auto;
     }
-    input, button {
+    input, select, button {
       width: 100%;
       padding: 10px;
       margin-top: 10px;
@@ -29,63 +28,88 @@
 </head>
 <body>
 
-  <h1>Book a Detail</h1>
+<h1>Book a Detail</h1>
 
-  <form id="booking-form">
-    <input id="full_name" placeholder="Full Name" required />
-    <input id="email" type="email" placeholder="Email" required />
-    <input id="phone" placeholder="Phone" required />
-    <input id="service_address" placeholder="Service Address" required />
+<form id="booking-form">
 
-    <label>Start</label>
-    <input id="start" type="datetime-local" required />
+  <!-- Customer -->
+  <input id="full_name" placeholder="Full Name" required />
+  <input id="email" type="email" placeholder="Email" required />
+  <input id="phone" placeholder="Phone" required />
+  <input id="service_address" placeholder="Service Address" required />
 
-    <label>End</label>
-    <input id="end" type="datetime-local" required />
+  <!-- Vehicle -->
+  <input id="vehicle_type" placeholder="Vehicle Type (e.g. Sedan, SUV)" required />
 
-    <button type="submit">Submit Booking</button>
-  </form>
+  <select id="vehicle_size" required>
+    <option value="">Vehicle Size</option>
+    <option value="small">Small</option>
+    <option value="midsized">Midsized</option>
+    <option value="large">Large</option>
+  </select>
 
-  <pre id="result"></pre>
+  <input id="license_plate" placeholder="License Plate" required />
 
-  <script>
-    // ✅ IMPORTANT: do NOT name this variable `supabase`
-    const supabaseClient = window.supabase.createClient(
-      "https://lhwlvleocakggpbbpzyx.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
-    );
+  <!-- Service -->
+  <select id="service_variant_id" required>
+    <option value="">Select Service</option>
+    <!-- Replace or dynamically load later -->
+    <option value="d27a196d-8be2-4e50-978c-02d83bb52995">
+      Interior Detail – Midsized
+    </option>
+  </select>
 
-    document
-      .getElementById("booking-form")
-      .addEventListener("submit", async (e) => {
-        e.preventDefault();
+  <!-- Schedule -->
+  <label>Start</label>
+  <input id="start" type="datetime-local" required />
 
-        const result = document.getElementById("result");
-        result.textContent = "Submitting booking...";
+  <label>End</label>
+  <input id="end" type="datetime-local" required />
 
-        const booking = {
-          customer_id: "d95f5c8c-9229-4058-b5c9-fbe3f4ff445b",
-          vehicle_id: "3281db98-4c8e-4f4e-ab1d-131c782ed3d8",
-          service_variant_id: "d27a196d-8be2-4e50-978c-02d83bb52995",
-          service_address: document.getElementById("service_address").value,
-          scheduled_start: document.getElementById("start").value,
-          scheduled_end: document.getElementById("end").value,
-          status: "pending"
-        };
+  <button type="submit">Submit Booking</button>
+</form>
 
-        const { data, error } = await supabaseClient
-          .from("bookings")
-          .insert([booking])
+<pre id="result"></pre>
 
-        if (error) {
-          console.error("INSERT ERROR:", error);
-          result.textContent = "Error: " + error.message;
-        } else {
-          console.log("BOOKING INSERTED:", data);
-          result.textContent = "✅ Booking submitted successfully.";
-        }
-      });
-  </script>
+<script>
+  const supabaseClient = window.supabase.createClient(
+    "https://lhwlvleocakggpbbpzyx.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
+  );
+
+  document.getElementById("booking-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const result = document.getElementById("result");
+    result.textContent = "Submitting booking...";
+
+    const payload = {
+      p_full_name: document.getElementById("full_name").value,
+      p_email: document.getElementById("email").value,
+      p_phone: document.getElementById("phone").value,
+      p_service_address: document.getElementById("service_address").value,
+
+      p_vehicle_type: document.getElementById("vehicle_type").value,
+      p_vehicle_size: document.getElementById("vehicle_size").value,
+      p_license_plate: document.getElementById("license_plate").value,
+
+      p_service_variant_id: document.getElementById("service_variant_id").value,
+      p_scheduled_start: document.getElementById("start").value,
+      p_scheduled_end: document.getElementById("end").value
+    };
+
+    const { error } = await supabaseClient
+      .rpc("create_booking_with_customer", payload);
+
+    if (error) {
+      console.error(error);
+      result.textContent = "Error: " + error.message;
+    } else {
+      result.textContent = "✅ Booking submitted successfully.";
+      document.getElementById("booking-form").reset();
+    }
+  });
+</script>
 
 </body>
 </html>
