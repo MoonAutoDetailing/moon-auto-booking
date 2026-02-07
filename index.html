@@ -7,6 +7,10 @@
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
   <style>
     :root{
       --moon-blue:#4f8de6;
@@ -83,6 +87,11 @@
       color:var(--muted);
       white-space:pre-wrap;
     }
+    #calendar{
+      margin-top:10px;
+      border-radius:12px;
+      overflow:hidden;
+    }
     @media (max-width:520px){
       .row{ grid-template-columns:1fr; }
       h1{ font-size:34px; }
@@ -147,6 +156,11 @@
           <option value="">Select vehicle size first</option>
         </select>
 
+        <!-- PUBLIC AVAILABILITY CALENDAR -->
+        <label>Availability</label>
+        <div id="calendar"></div>
+
+        <!-- MANUAL INPUTS (TEMPORARY, REMOVED NEXT STEP) -->
         <label>Start</label>
         <input id="startTime" type="datetime-local" required />
 
@@ -160,6 +174,9 @@
   </div>
 
 <script>
+/* ======================
+   SUPABASE CLIENT
+   ====================== */
 const supabaseClient = supabase.createClient(
   "https://lhwlvleocakggpbbpzyx.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
@@ -169,6 +186,9 @@ const vehicleSizeEl = document.getElementById("vehicleSize");
 const serviceSelectEl = document.getElementById("serviceSelect");
 const statusEl = document.getElementById("status");
 
+/* ======================
+   LOAD SERVICES
+   ====================== */
 vehicleSizeEl.addEventListener("change", loadServices);
 
 async function loadServices() {
@@ -196,11 +216,60 @@ async function loadServices() {
   serviceSelectEl.disabled = false;
 }
 
+/* ======================
+   PUBLIC AVAILABILITY CALENDAR (READ-ONLY)
+   ====================== */
+(async function renderAvailabilityCalendar() {
+  const calendarEl = document.getElementById("calendar");
+
+  const start = new Date();
+  const end = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+  const { data, error } = await supabaseClient.rpc(
+    "get_public_unavailable_ranges",
+    {
+      p_start: start.toISOString(),
+      p_end: end.toISOString()
+    }
+  );
+
+  if (error) {
+    console.error("Availability RPC error:", error);
+    return;
+  }
+
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: "timeGridWeek",
+    height: "auto",
+    allDaySlot: false,
+    nowIndicator: true,
+    selectable: false,
+
+    businessHours: {
+      startTime: "08:00",
+      endTime: "17:00",
+      daysOfWeek: [0,1,2,3,4,5,6]
+    },
+
+    events: data.map(r => ({
+      start: r.unavailable_start,
+      end: r.unavailable_end,
+      display: "background",
+      backgroundColor: "#e5e7eb"
+    }))
+  });
+
+  calendar.render();
+})();
+
+/* ======================
+   BOOKING SUBMIT (UNCHANGED)
+   ====================== */
 document.getElementById("booking-form").addEventListener("submit", async e => {
   e.preventDefault();
   statusEl.textContent = "Submitting…";
 
-  const email = emailEl = document.getElementById("email").value.trim().toLowerCase();
+  const email = document.getElementById("email").value.trim().toLowerCase();
 
   const { data: cust } = await supabaseClient
     .from("customers")
@@ -220,7 +289,6 @@ document.getElementById("booking-form").addEventListener("submit", async e => {
     customerId = data[0].id;
   }
 
-  // ✅ FIXED PART — CLIENT UUID, NO SELECT
   const vehicleId = crypto.randomUUID();
 
   await supabaseClient.from("vehicles").insert([{
@@ -246,6 +314,6 @@ document.getElementById("booking-form").addEventListener("submit", async e => {
   statusEl.textContent = "✅ Booking submitted successfully.";
 });
 </script>
+
 </body>
 </html>
-
