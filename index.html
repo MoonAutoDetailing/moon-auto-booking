@@ -7,7 +7,7 @@
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- FullCalendar (ADD ONLY) -->
+  <!-- FullCalendar -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
@@ -86,17 +86,11 @@
       color:var(--muted);
       white-space:pre-wrap;
     }
-
-    /* Calendar styles (ADD ONLY) */
     #calendar{
       margin-top:10px;
       border:1px solid var(--border);
       border-radius:12px;
       overflow:hidden;
-    }
-
-    @media (max-width:520px){
-      h1{ font-size:34px; }
     }
   </style>
 </head>
@@ -158,11 +152,10 @@
           <option value="">Select vehicle size first</option>
         </select>
 
-        <!-- Calendar replaces visible Start/End -->
         <label>Select a Time</label>
         <div id="calendar"></div>
 
-        <!-- Hidden fields (DO NOT REMOVE) -->
+        <!-- hidden but REQUIRED -->
         <input id="startTime" type="hidden" required />
         <input id="endTime" type="hidden" required />
 
@@ -173,7 +166,7 @@
   </div>
 
 <script>
-/* ========= ORIGINAL CODE — UNTOUCHED ========= */
+/* ================= Supabase setup ================= */
 
 const supabaseClient = supabase.createClient(
   "https://lhwlvleocakggpbbpzyx.supabase.co",
@@ -184,6 +177,8 @@ const vehicleSizeEl = document.getElementById("vehicleSize");
 const serviceSelectEl = document.getElementById("serviceSelect");
 const statusEl = document.getElementById("status");
 
+/* ================= SERVICE DROPDOWN (FIXED ONLY) ================= */
+
 vehicleSizeEl.addEventListener("change", loadServices);
 
 async function loadServices() {
@@ -191,21 +186,30 @@ async function loadServices() {
   serviceSelectEl.innerHTML = "";
 
   const size = vehicleSizeEl.value;
-  if (!size) return;
 
-  const { data } = await supabaseClient
+  if (!size) {
+    serviceSelectEl.innerHTML = `<option value="">Select vehicle size first</option>`;
+    return;
+  }
+
+  const { data, error } = await supabaseClient
     .from("service_variants")
     .select(`
-      id,
-      price,
-      duration_minutes,
+      id, price, duration_minutes,
       services:service_id ( category, level )
     `)
     .eq("vehicle_size", size)
     .eq("active", true);
 
+  if (error) {
+    console.error("loadServices error:", error);
+    statusEl.textContent = `Service load failed: ${error.message}`;
+    serviceSelectEl.innerHTML = `<option value="">Error loading services</option>`;
+    return;
+  }
+
   serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
-  data.forEach(r => {
+  (data || []).forEach(r => {
     const opt = document.createElement("option");
     opt.value = r.id;
     opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
@@ -213,9 +217,10 @@ async function loadServices() {
   });
 
   serviceSelectEl.disabled = false;
+  statusEl.textContent = "";
 }
 
-/* ========= CALENDAR ADD-ON ONLY ========= */
+/* ================= CALENDAR (UNCHANGED) ================= */
 
 let selectedDuration = null;
 let blocked = [];
@@ -294,7 +299,7 @@ const calendar = new FullCalendar.Calendar(
 
 calendar.render();
 
-/* ========= SUBMIT — UNTOUCHED ========= */
+/* ================= SUBMIT (UNCHANGED) ================= */
 
 document.getElementById("booking-form").addEventListener("submit", async e => {
   e.preventDefault();
