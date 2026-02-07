@@ -155,7 +155,7 @@
         <label>Select a Time</label>
         <div id="calendar"></div>
 
-        <!-- hidden but REQUIRED -->
+        <!-- Hidden but REQUIRED -->
         <input id="startTime" type="hidden" required />
         <input id="endTime" type="hidden" required />
 
@@ -166,7 +166,7 @@
   </div>
 
 <script>
-/* ================= Supabase setup ================= */
+/* ================= Supabase ================= */
 
 const supabaseClient = supabase.createClient(
   "https://lhwlvleocakggpbbpzyx.supabase.co",
@@ -177,7 +177,7 @@ const vehicleSizeEl = document.getElementById("vehicleSize");
 const serviceSelectEl = document.getElementById("serviceSelect");
 const statusEl = document.getElementById("status");
 
-/* ================= SERVICE DROPDOWN (FIXED ONLY) ================= */
+/* ================= SERVICE DROPDOWN (FIXED) ================= */
 
 vehicleSizeEl.addEventListener("change", loadServices);
 
@@ -186,30 +186,30 @@ async function loadServices() {
   serviceSelectEl.innerHTML = "";
 
   const size = vehicleSizeEl.value;
-
-  if (!size) {
-    serviceSelectEl.innerHTML = `<option value="">Select vehicle size first</option>`;
-    return;
-  }
+  if (!size) return;
 
   const { data, error } = await supabaseClient
     .from("service_variants")
     .select(`
-      id, price, duration_minutes,
+      id,
+      price,
+      duration_minutes,
       services:service_id ( category, level )
     `)
     .eq("vehicle_size", size)
     .eq("active", true);
 
   if (error) {
-    console.error("loadServices error:", error);
-    statusEl.textContent = `Service load failed: ${error.message}`;
-    serviceSelectEl.innerHTML = `<option value="">Error loading services</option>`;
+    statusEl.textContent = error.message;
     return;
   }
 
   serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
+
   (data || []).forEach(r => {
+    // ✅ CRITICAL FIX — skip broken joins
+    if (!r.services) return;
+
     const opt = document.createElement("option");
     opt.value = r.id;
     opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
@@ -217,10 +217,9 @@ async function loadServices() {
   });
 
   serviceSelectEl.disabled = false;
-  statusEl.textContent = "";
 }
 
-/* ================= CALENDAR (UNCHANGED) ================= */
+/* ================= CALENDAR ================= */
 
 let selectedDuration = null;
 let blocked = [];
