@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin Calendar</title>
 
-  <!-- FullCalendar -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
-  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -38,9 +36,8 @@
 <div id="calendar"></div>
 
 <script>
-  // 🔴 CHANGE THESE TWO VALUES ONLY
   const SUPABASE_URL = "https://lhwlvleocakggpbbpzyx.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI";
+  const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";
 
   const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const status = document.getElementById("status");
@@ -55,7 +52,8 @@
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin + "/admin.html"
+        // ✅ HARD-CODED, ALLOWLISTED REDIRECT
+        emailRedirectTo: "https://moon-auto-booking.vercel.app/admin.html"
       }
     });
 
