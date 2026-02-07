@@ -5,86 +5,27 @@
   <title>Book a Detail | Moon Auto Detailing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Supabase -->
+  <!-- Supabase v2 -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
-    :root {
-      --primary: #78acd8;
-      --dark: #111;
-      --light: #f6f8fb;
-    }
-
-    body {
-      margin: 0;
-      background: var(--light);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    header {
-      background: #000;
-      height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 0 24px;
-    }
-
-    header img {
-      height: 42px;
-    }
-
-    .container {
-      max-width: 520px;
-      margin: 40px auto;
-      background: white;
-      border-radius: 10px;
-      padding: 28px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    }
-
-    h1 {
-      text-align: center;
-      color: var(--primary);
-      margin-bottom: 24px;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-top: 16px;
-      margin-bottom: 6px;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #dcdcdc;
-      font-size: 15px;
-    }
-
-    button {
-      margin-top: 24px;
-      width: 100%;
-      padding: 14px;
-      border-radius: 8px;
-      border: none;
-      background: var(--primary);
-      color: white;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    button:hover {
-      opacity: 0.9;
-    }
+    :root { --primary:#78acd8; --dark:#111; --light:#f6f8fb; }
+    body { margin:0; background:var(--light); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+    header { background:#000; height:70px; display:flex; align-items:center; justify-content:flex-end; padding:0 24px; }
+    header img { height:42px; }
+    .container { max-width:520px; margin:40px auto; background:#fff; border-radius:10px; padding:28px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+    h1 { text-align:center; color:var(--primary); margin:0 0 24px; }
+    label { display:block; font-weight:600; margin-top:16px; margin-bottom:6px; }
+    input,select { width:100%; padding:10px; border-radius:6px; border:1px solid #dcdcdc; font-size:15px; }
+    button { margin-top:24px; width:100%; padding:14px; border-radius:8px; border:none; background:var(--primary); color:#fff; font-size:16px; font-weight:700; cursor:pointer; }
+    button:hover { opacity:.92; }
+    .hint { font-size:13px; color:#666; margin-top:6px; }
   </style>
 </head>
 <body>
 
 <header>
+  <!-- Make sure this file exists in your repo at /NewLogoColor.png -->
   <img src="/NewLogoColor.png" alt="Moon Auto Detailing Logo">
 </header>
 
@@ -92,9 +33,8 @@
   <h1>Book a Detail</h1>
 
   <form id="bookingForm">
-
     <label>Full Name</label>
-    <input id="name" required />
+    <input id="full_name" required />
 
     <label>Email</label>
     <input id="email" type="email" required />
@@ -103,52 +43,69 @@
     <input id="phone" required />
 
     <label>Service Address</label>
-    <input id="address" required />
+    <input id="service_address" required />
 
     <label>Vehicle Year</label>
-    <input id="vehicleYear" required />
+    <input id="vehicle_year" required />
 
     <label>Vehicle Make</label>
-    <input id="vehicleMake" required />
+    <input id="vehicle_make" required />
 
     <label>Vehicle Model</label>
-    <input id="vehicleModel" required />
+    <input id="vehicle_model" required />
 
     <label>Vehicle Size</label>
-    <select id="vehicleSize" required>
+    <!-- VALUE MUST BE LOWERCASE to match your DB -->
+    <select id="vehicle_size" required>
       <option value="">Select size</option>
       <option value="compact">Compact</option>
       <option value="midsized">Midsized</option>
       <option value="oversized">Oversized</option>
     </select>
+    <div class="hint">Services will filter by vehicle size.</div>
 
     <label>License Plate</label>
-    <input id="licensePlate" required />
+    <input id="license_plate" required />
 
     <label>Select Service</label>
-    <select id="serviceSelect" required>
+    <select id="service_variant_id" required disabled>
       <option value="">Select vehicle size first</option>
     </select>
 
     <label>Start</label>
-    <input id="startTime" type="datetime-local" required />
+    <input id="scheduled_start" type="datetime-local" required />
 
     <label>End</label>
-    <input id="endTime" type="datetime-local" required />
+    <input id="scheduled_end" type="datetime-local" required />
 
     <button type="submit">Submit Booking</button>
   </form>
 </div>
 
 <script>
-  const supabase = supabaseJs.createClient(
-    "YOUR_SUPABASE_URL",
-    "YOUR_PUBLIC_ANON_KEY"
-  );
+  // ====== PUT YOUR REAL VALUES HERE ======
+  const SUPABASE_URL = "https://lhwlvleocakggpbbpzyx.supabase.co";
+  const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_KEY_HERE";
+  // ======================================
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let serviceVariants = [];
 
-  async function loadServices() {
+  const vehicleSizeEl = document.getElementById("vehicle_size");
+  const serviceSelectEl = document.getElementById("service_variant_id");
+
+  function setServiceSelectPlaceholder(text) {
+    serviceSelectEl.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = text;
+    serviceSelectEl.appendChild(opt);
+  }
+
+  async function loadServiceVariants() {
+    // Key fix: your services table uses category + level (not "name")
+    // This relies on a FK from service_variants.service_id -> services.id
     const { data, error } = await supabase
       .from("service_variants")
       .select(`
@@ -156,96 +113,133 @@
         vehicle_size,
         price,
         duration_minutes,
-        service:service_id ( name )
+        service:service_id (
+          category,
+          level
+        )
       `)
       .eq("active", true);
 
     if (error) {
-      console.error(error);
+      console.error("SERVICE_VARIANTS LOAD ERROR:", error);
+      setServiceSelectPlaceholder("Error loading services (check console)");
+      serviceSelectEl.disabled = true;
       return;
     }
 
-    serviceVariants = data;
+    serviceVariants = data || [];
   }
 
-  document.getElementById("vehicleSize").addEventListener("change", () => {
-    const size = document.getElementById("vehicleSize").value;
-    const select = document.getElementById("serviceSelect");
+  function populateServicesForSize() {
+    const size = (vehicleSizeEl.value || "").toLowerCase();
 
-    select.innerHTML = "";
-
-    const matches = serviceVariants.filter(v => v.vehicle_size === size);
-
-    if (!matches.length) {
-      select.innerHTML = `<option>No services available</option>`;
+    // Require size
+    if (!size) {
+      setServiceSelectPlaceholder("Select vehicle size first");
+      serviceSelectEl.disabled = true;
       return;
     }
 
-    select.innerHTML = `<option value="">Select service</option>`;
+    // Filter safely (handles any casing that slipped into DB)
+    const matches = serviceVariants.filter(v =>
+      (v.vehicle_size || "").toLowerCase() === size
+    );
+
+    serviceSelectEl.innerHTML = "";
+
+    if (!matches.length) {
+      setServiceSelectPlaceholder("No services available for this size");
+      serviceSelectEl.disabled = true;
+      return;
+    }
+
+    // Build dropdown
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = "Select a service";
+    serviceSelectEl.appendChild(first);
 
     matches.forEach(v => {
+      const category = v?.service?.category ?? "Service";
+      const level = v?.service?.level ?? "";
+      const label = `${category} ${level}`.trim();
+
       const opt = document.createElement("option");
       opt.value = v.id;
-      opt.textContent = `${v.service.name} — $${v.price}`;
-      select.appendChild(opt);
+      opt.textContent = `${label} — $${v.price}`;
+      serviceSelectEl.appendChild(opt);
     });
-  });
+
+    serviceSelectEl.disabled = false;
+  }
+
+  vehicleSizeEl.addEventListener("change", populateServicesForSize);
 
   document.getElementById("bookingForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const customer = {
-      name: name.value,
-      email: email.value,
-      phone: phone.value,
-      address: address.value
+    // 1) customer
+    const customerPayload = {
+      full_name: document.getElementById("full_name").value,
+      email: document.getElementById("email").value,
+      phone: document.getElementById("phone").value,
+      address: document.getElementById("service_address").value
     };
 
     const { data: customerRow, error: customerErr } = await supabase
       .from("customers")
-      .insert(customer)
+      .insert(customerPayload)
       .select()
       .single();
 
-    if (customerErr) return alert(customerErr.message);
+    if (customerErr) return alert("Customer insert failed: " + customerErr.message);
 
-    const vehicle = {
+    // 2) vehicle (one vehicle per booking)
+    const vehiclePayload = {
       customer_id: customerRow.id,
-      year: vehicleYear.value,
-      make: vehicleMake.value,
-      model: vehicleModel.value,
-      vehicle_size: vehicleSize.value,
-      license_plate: licensePlate.value
+      vehicle_size: document.getElementById("vehicle_size").value.toLowerCase(),
+      license_plate: document.getElementById("license_plate").value,
+      year: document.getElementById("vehicle_year").value,
+      make: document.getElementById("vehicle_make").value,
+      model: document.getElementById("vehicle_model").value
     };
 
     const { data: vehicleRow, error: vehicleErr } = await supabase
       .from("vehicles")
-      .insert(vehicle)
+      .insert(vehiclePayload)
       .select()
       .single();
 
-    if (vehicleErr) return alert(vehicleErr.message);
+    if (vehicleErr) return alert("Vehicle insert failed: " + vehicleErr.message);
 
-    const booking = {
+    // 3) booking
+    const bookingPayload = {
       customer_id: customerRow.id,
       vehicle_id: vehicleRow.id,
-      service_variant_id: serviceSelect.value,
-      start_time: startTime.value,
-      end_time: endTime.value,
+      service_variant_id: document.getElementById("service_variant_id").value,
+      service_address: document.getElementById("service_address").value,
+      scheduled_start: document.getElementById("scheduled_start").value,
+      scheduled_end: document.getElementById("scheduled_end").value,
       status: "pending"
     };
 
     const { error: bookingErr } = await supabase
       .from("bookings")
-      .insert(booking);
+      .insert(bookingPayload);
 
-    if (bookingErr) return alert(bookingErr.message);
+    if (bookingErr) return alert("Booking insert failed: " + bookingErr.message);
 
     alert("Booking submitted successfully!");
     location.reload();
   });
 
-  loadServices();
+  // Init
+  (async function init() {
+    setServiceSelectPlaceholder("Loading services...");
+    serviceSelectEl.disabled = true;
+    await loadServiceVariants();
+    populateServicesForSize(); // handles if user already picked a size
+  })();
 </script>
 
 </body>
