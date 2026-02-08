@@ -188,11 +188,13 @@ async function loadServices() {
 
   serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
   data.forEach(r => {
-    const opt = document.createElement("option");
-    opt.value = r.id;
-    opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
-    serviceSelectEl.appendChild(opt);
-  });
+  if (!r.services) return;   // ← THIS IS THE FIX
+
+  const opt = document.createElement("option");
+  opt.value = r.id;
+  opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
+  serviceSelectEl.appendChild(opt);
+});
   serviceSelectEl.disabled = false;
 }
 
