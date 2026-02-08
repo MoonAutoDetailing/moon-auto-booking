@@ -234,28 +234,47 @@ async function loadServices() {
   selectedServiceDurationMins = null;
   calendarWrapEl.style.display = "none";
   calendarStatusEl.textContent = "";
-  if (calendarInstance) {
-    calendarInstance.removeAllEvents();
-  }
 
   const size = vehicleSizeEl.value;
   if (!size) return;
 
-  // ONLY CHANGE vs your original: force an INNER join so r.services is never null.
-  // Supabase supports !inner for nested relation filters. :contentReference[oaicite:3]{index=3}
   const { data, error } = await supabaseClient
-  .from("service_variants")
-  .select(`
-    id,
-    price,
-    duration_minutes,
-    services!service_variants_service_id_fkey (
-      category,
-      level
-    )
-  `)
-  .eq("vehicle_size", size)
-  .eq("active", true);
+    .from("service_variants")
+    .select(`
+      id,
+      price,
+      duration_minutes,
+      service_id,
+      services (
+        category,
+        level
+      )
+    `)
+    .eq("vehicle_size", size)
+    .eq("active", true);
+
+  if (error) {
+    statusEl.textContent = "Error loading services: " + error.message;
+    return;
+  }
+
+  serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
+
+  data.forEach(r => {
+    // HARD GUARD — skip broken rows silently
+    if (!r.services) return;
+
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent =
+      `${r.services.category} – Level ${r.services.level} ($${r.price}) • ${r.duration_minutes} min`;
+    opt.dataset.duration = r.duration_minutes;
+
+    serviceSelectEl.appendChild(opt);
+  });
+
+  serviceSelectEl.disabled = false;
+}
 
 
 
