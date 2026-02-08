@@ -249,13 +249,14 @@ async function loadServices() {
     id,
     price,
     duration_minutes,
-    services:service_id!service_variants_service_id_fkey (
+    services!service_variants_service_id_fkey (
       category,
       level
     )
   `)
   .eq("vehicle_size", size)
   .eq("active", true);
+
 
 
   if (error) {
