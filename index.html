@@ -174,38 +174,25 @@ vehicleSizeEl.addEventListener("change", loadServices);
 async function loadServices() {
   serviceSelectEl.disabled = true;
   serviceSelectEl.innerHTML = "";
-
   const size = vehicleSizeEl.value;
   if (!size) return;
 
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("service_variants")
     .select(`
-      id,
-      price,
-      duration_minutes,
-      services:service_id!inner (
-        category,
-        level
-      )
+      id, price, duration_minutes,
+      services:service_id ( category, level )
     `)
     .eq("vehicle_size", size)
     .eq("active", true);
 
-  if (error) {
-    statusEl.textContent = error.message;
-    return;
-  }
-
   serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
-
   data.forEach(r => {
     const opt = document.createElement("option");
     opt.value = r.id;
     opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
     serviceSelectEl.appendChild(opt);
   });
-
   serviceSelectEl.disabled = false;
 }
 
@@ -213,7 +200,7 @@ document.getElementById("booking-form").addEventListener("submit", async e => {
   e.preventDefault();
   statusEl.textContent = "Submitting…";
 
-  const email = document.getElementById("email").value.trim().toLowerCase();
+  const email = emailEl = document.getElementById("email").value.trim().toLowerCase();
 
   const { data: cust } = await supabaseClient
     .from("customers")
@@ -233,6 +220,7 @@ document.getElementById("booking-form").addEventListener("submit", async e => {
     customerId = data[0].id;
   }
 
+  // ✅ FIXED PART — CLIENT UUID, NO SELECT
   const vehicleId = crypto.randomUUID();
 
   await supabaseClient.from("vehicles").insert([{
