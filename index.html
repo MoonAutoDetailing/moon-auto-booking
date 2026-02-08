@@ -166,8 +166,6 @@
   </div>
 
 <script>
-/* ================= Supabase ================= */
-
 const supabaseClient = supabase.createClient(
   "https://lhwlvleocakggpbbpzyx.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
@@ -177,49 +175,47 @@ const vehicleSizeEl = document.getElementById("vehicleSize");
 const serviceSelectEl = document.getElementById("serviceSelect");
 const statusEl = document.getElementById("status");
 
-/* ================= SERVICE DROPDOWN (FIXED) ================= */
-
 vehicleSizeEl.addEventListener("change", loadServices);
 
 async function loadServices() {
   serviceSelectEl.disabled = true;
   serviceSelectEl.innerHTML = "";
-
   const size = vehicleSizeEl.value;
   if (!size) return;
 
   const { data, error } = await supabaseClient
     .from("service_variants")
     .select(`
-      id,
-      price,
-      duration_minutes,
+      id, price, duration_minutes,
       services:service_id ( category, level )
     `)
     .eq("vehicle_size", size)
     .eq("active", true);
 
   if (error) {
-    statusEl.textContent = error.message;
+    console.error("loadServices error:", error);
+    statusEl.textContent = `Service load failed: ${error.message}`;
+    serviceSelectEl.innerHTML = `<option value="">Error loading services</option>`;
     return;
   }
 
+  const rows = data || [];
   serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
 
-  (data || []).forEach(r => {
-    // ✅ CRITICAL FIX — skip broken joins
-    if (!r.services) return;
-
+  // ✅ CRITICAL: DO NOT SKIP rows. Fallback label if join is null.
+  rows.forEach(r => {
+    const svc = r.services || { category: "service", level: "?" };
     const opt = document.createElement("option");
     opt.value = r.id;
-    opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
+    opt.textContent = `${svc.category} – Level ${svc.level} ($${r.price}) • ${r.duration_minutes} min`;
     serviceSelectEl.appendChild(opt);
   });
 
   serviceSelectEl.disabled = false;
+  statusEl.textContent = rows.length ? "" : "No services found for that vehicle size.";
 }
 
-/* ================= CALENDAR ================= */
+/* ===== Calendar (unchanged from your current setup) ===== */
 
 let selectedDuration = null;
 let blocked = [];
@@ -298,7 +294,7 @@ const calendar = new FullCalendar.Calendar(
 
 calendar.render();
 
-/* ================= SUBMIT (UNCHANGED) ================= */
+/* ===== Submit (unchanged) ===== */
 
 document.getElementById("booking-form").addEventListener("submit", async e => {
   e.preventDefault();
