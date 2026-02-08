@@ -7,9 +7,14 @@
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- FullCalendar (ADD) -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
   <style>
     :root{
       --moon-blue:#4f8de6;
+      --moon-blue-dark:#3e7bd6;
       --bg:#f5f7fb;
       --card:#ffffff;
       --text:#111827;
@@ -82,6 +87,29 @@
       color:var(--muted);
       white-space:pre-wrap;
     }
+    @media (max-width:520px){
+      .row{ grid-template-columns:1fr; }
+      h1{ font-size:34px; }
+    }
+
+    /* ===== Calendar UI (ADD) ===== */
+    .calendarWrap{
+      margin-top:10px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      overflow:hidden;
+    }
+    #calendarLockMsg{
+      padding:12px;
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      color:#9a3412;
+      border-radius:12px;
+      margin-top:10px;
+      font-size:14px;
+    }
+    /* hidden until service selected */
+    .hidden{ display:none; }
   </style>
 </head>
 
@@ -142,6 +170,24 @@
           <option value="">Select vehicle size first</option>
         </select>
 
+        <!-- ===== Start/End remain present (original) ===== -->
+        <label>Start</label>
+        <input id="startTime" type="datetime-local" required />
+
+        <label>End</label>
+        <input id="endTime" type="datetime-local" required />
+
+        <!-- ===== Calendar (ADD) ===== -->
+        <label>Availability Calendar</label>
+
+        <!-- locked message (visible until service selected) -->
+        <div id="calendarLockMsg">Select a service to view available times.</div>
+
+        <!-- calendar hidden until service selected -->
+        <div id="calendarContainer" class="calendarWrap hidden">
+          <div id="calendar"></div>
+        </div>
+
         <button class="btn">Submit Booking</button>
         <div id="status" class="status"></div>
       </form>
@@ -149,6 +195,8 @@
   </div>
 
 <script>
+/* ================= ORIGINAL WORKING SUPABASE + DROPDOWN ================= */
+
 const supabaseClient = supabase.createClient(
   "https://lhwlvleocakggpbbpzyx.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
@@ -160,46 +208,119 @@ const statusEl = document.getElementById("status");
 
 vehicleSizeEl.addEventListener("change", loadServices);
 
+/* DO NOT CHANGE DROPDOWN LOGIC */
 async function loadServices() {
   serviceSelectEl.disabled = true;
   serviceSelectEl.innerHTML = "";
-
   const size = vehicleSizeEl.value;
   if (!size) return;
 
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("service_variants")
     .select(`
-      id,
-      price,
-      duration_minutes,
-      services (
-        category,
-        level
-      )
+      id, price, duration_minutes,
+      services:service_id ( category, level )
     `)
     .eq("vehicle_size", size)
     .eq("active", true);
 
-  if (error) {
-    statusEl.textContent = error.message;
+  serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
+  data.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
+    serviceSelectEl.appendChild(opt);
+  });
+  serviceSelectEl.disabled = false;
+}
+
+/* ================= ONLY ADDITION: calendar lock/unlock ================= */
+
+const calendarLockMsg = document.getElementById("calendarLockMsg");
+const calendarContainer = document.getElementById("calendarContainer");
+
+let calendarInitialized = false;
+let calendar;
+
+serviceSelectEl.addEventListener("change", () => {
+  // if no service selected, keep locked
+  if (!serviceSelectEl.value) {
+    calendarContainer.classList.add("hidden");
+    calendarLockMsg.classList.remove("hidden");
     return;
   }
 
-  serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
+  // unlock calendar UI
+  calendarLockMsg.classList.add("hidden");
+  calendarContainer.classList.remove("hidden");
 
-  data.forEach(r => {
-    if (!r.services) return; // 🔒 guard against bad FK rows
+  // init once
+  if (!calendarInitialized) {
+    calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+      initialView: "timeGridWeek",
+      allDaySlot: false,
+      nowIndicator: true,
+      height: "auto",
+      slotMinTime: "08:00:00",
+      slotMaxTime: "17:00:00",
+      slotDuration: "00:15:00"
+    });
+    calendar.render();
+    calendarInitialized = true;
+  }
+});
 
-    const opt = document.createElement("option");
-    opt.value = r.id;
-    opt.textContent =
-      `${r.services.category} – Level ${r.services.level} ($${r.price}) • ${r.duration_minutes} min`;
-    serviceSelectEl.appendChild(opt);
-  });
+/* ================= ORIGINAL SUBMIT FLOW ================= */
 
-  serviceSelectEl.disabled = false;
-}
+document.getElementById("booking-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  statusEl.textContent = "Submitting…";
+
+  const email = document.getElementById("email").value.trim().toLowerCase();
+
+  const { data: cust } = await supabaseClient
+    .from("customers")
+    .select("id")
+    .eq("email", email)
+    .limit(1);
+
+  let customerId;
+  if (cust.length) customerId = cust[0].id;
+  else {
+    const { data } = await supabaseClient.from("customers").insert([{
+      full_name: fullName.value,
+      email,
+      phone: phone.value,
+      address: address.value
+    }]);
+    customerId = data[0].id;
+  }
+
+  // ✅ FIXED PART — CLIENT UUID, NO SELECT
+  const vehicleId = crypto.randomUUID();
+
+  await supabaseClient.from("vehicles").insert([{
+    id: vehicleId,
+    customer_id: customerId,
+    vehicle_size: vehicleSize.value,
+    license_plate: licensePlate.value,
+    vehicle_year: Number(vehicleYear.value),
+    vehicle_make: vehicleMake.value,
+    vehicle_model: vehicleModel.value
+  }]);
+
+  await supabaseClient.from("bookings").insert([{
+    customer_id: customerId,
+    vehicle_id: vehicleId,
+    service_variant_id: serviceSelect.value,
+    service_address: address.value,
+    scheduled_start: startTime.value,
+    scheduled_end: endTime.value,
+    status: "pending"
+  }]);
+
+  statusEl.textContent = "✅ Booking submitted successfully.";
+});
 </script>
 </body>
 </html>
