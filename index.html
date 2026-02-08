@@ -244,13 +244,19 @@ async function loadServices() {
   // ONLY CHANGE vs your original: force an INNER join so r.services is never null.
   // Supabase supports !inner for nested relation filters. :contentReference[oaicite:3]{index=3}
   const { data, error } = await supabaseClient
-    .from("service_variants")
-    .select(`
-      id, price, duration_minutes,
-      services:service_id!inner ( category, level )
-    `)
-    .eq("vehicle_size", size)
-    .eq("active", true);
+  .from("service_variants")
+  .select(`
+    id,
+    price,
+    duration_minutes,
+    services:service_id!service_variants_service_id_fkey (
+      category,
+      level
+    )
+  `)
+  .eq("vehicle_size", size)
+  .eq("active", true);
+
 
   if (error) {
     statusEl.textContent = "Error loading services: " + error.message;
