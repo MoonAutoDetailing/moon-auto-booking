@@ -174,27 +174,38 @@ vehicleSizeEl.addEventListener("change", loadServices);
 async function loadServices() {
   serviceSelectEl.disabled = true;
   serviceSelectEl.innerHTML = "";
+
   const size = vehicleSizeEl.value;
   if (!size) return;
 
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("service_variants")
     .select(`
-      id, price, duration_minutes,
-      services:service_id ( category, level )
+      id,
+      price,
+      duration_minutes,
+      services:service_id!inner (
+        category,
+        level
+      )
     `)
     .eq("vehicle_size", size)
     .eq("active", true);
 
-  serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
-  data.forEach(r => {
-  if (!r.services) return;   // ← THIS IS THE FIX
+  if (error) {
+    statusEl.textContent = error.message;
+    return;
+  }
 
-  const opt = document.createElement("option");
-  opt.value = r.id;
-  opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
-  serviceSelectEl.appendChild(opt);
-});
+  serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
+
+  data.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price})`;
+    serviceSelectEl.appendChild(opt);
+  });
+
   serviceSelectEl.disabled = false;
 }
 
