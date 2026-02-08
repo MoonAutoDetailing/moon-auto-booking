@@ -112,7 +112,6 @@
       border-color: rgba(255, 0, 0, 0.35) !important;
     }
 
-    /* Hide extra hours by config; this also increases contrast on grid */
     .fc .fc-timegrid-slot {
       border-color: rgba(0,0,0,0.08);
     }
@@ -200,7 +199,7 @@
 <script>
 const supabaseClient = supabase.createClient(
   "https://lhwlvleocakggpbbpzyx.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmJzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
 );
 
 const vehicleSizeEl = document.getElementById("vehicleSize");
@@ -235,6 +234,12 @@ async function loadServices() {
   calendarWrapEl.style.display = "none";
   calendarStatusEl.textContent = "";
 
+  // also clear busy blocks visually if calendar exists
+  busyRanges = [];
+  if (calendarInstance) {
+    calendarInstance.getEvents().forEach(ev => ev.remove());
+  }
+
   const size = vehicleSizeEl.value;
   if (!size) return;
 
@@ -244,7 +249,6 @@ async function loadServices() {
       id,
       price,
       duration_minutes,
-      service_id,
       services (
         category,
         level
@@ -261,39 +265,15 @@ async function loadServices() {
   serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
 
   data.forEach(r => {
-    // HARD GUARD — skip broken rows silently
-    if (!r.services) return;
+    if (!r.services) return; // skip broken rows safely
 
     const opt = document.createElement("option");
     opt.value = r.id;
     opt.textContent =
       `${r.services.category} – Level ${r.services.level} ($${r.price}) • ${r.duration_minutes} min`;
-    opt.dataset.duration = r.duration_minutes;
-
+    opt.dataset.duration = String(r.duration_minutes);
     serviceSelectEl.appendChild(opt);
   });
-
-  serviceSelectEl.disabled = false;
-}
-
-
-
-  if (error) {
-    statusEl.textContent = "Error loading services: " + error.message;
-    return;
-  }
-
-  serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
-  data.forEach(r => {
-  if (!r.services) return; // ⬅️ skip broken FK rows
-
-  const opt = document.createElement("option");
-  opt.value = r.id;
-  opt.textContent =
-    `${r.services.category} – Level ${r.services.level} ($${r.price}) • ${r.duration_minutes} min`;
-  opt.dataset.duration = String(r.duration_minutes);
-  serviceSelectEl.appendChild(opt);
-});
 
   serviceSelectEl.disabled = false;
 }
@@ -308,7 +288,6 @@ async function onServiceSelected() {
 
   if (!serviceId) return;
 
-  // duration comes from the dropdown option dataset
   const dur = Number(selectedOpt.dataset.duration || "");
   if (!Number.isFinite(dur) || dur <= 0) {
     statusEl.textContent = "Service duration missing/invalid. Check service_variants.duration_minutes.";
@@ -316,35 +295,25 @@ async function onServiceSelected() {
   }
   selectedServiceDurationMins = dur;
 
-  // Now (and only now) show calendar
   calendarWrapEl.style.display = "block";
 
-  // Initialize calendar once
   if (!calendarInstance) {
     calendarInstance = new FullCalendar.Calendar(document.getElementById("calendar"), {
       initialView: "timeGridWeek",
       nowIndicator: true,
       allDaySlot: false,
-
-      // Only show business hours 8am–5pm. :contentReference[oaicite:4]{index=4}
       slotMinTime: "08:00:00",
       slotMaxTime: "17:00:00",
       slotDuration: "00:15:00",
-
-      // allow clicking time slots (we use dateClick). :contentReference[oaicite:5]{index=5}
       selectable: true,
-
       headerToolbar: {
         left: "prev,next today",
         center: "title",
         right: "timeGridWeek,timeGridDay"
       },
-
-      // Load busy blocks when the visible range changes
       datesSet: async (info) => {
         await loadBusyBlocks(info.start, info.end);
       },
-
       dateClick: (info) => {
         if (!selectedServiceDurationMins) {
           calendarStatusEl.textContent = "Select a service first.";
@@ -354,7 +323,6 @@ async function onServiceSelected() {
         const start = new Date(info.date);
         const end = new Date(start.getTime() + selectedServiceDurationMins * 60 * 1000);
 
-        // Validate not overlapping with busy ranges
         for (const b of busyRanges) {
           if (overlaps(start, end, b.start, b.end)) {
             calendarStatusEl.textContent = "That time is not available. Pick a different slot.";
@@ -362,7 +330,6 @@ async function onServiceSelected() {
           }
         }
 
-        // Set your existing fields (so booking insert remains unchanged)
         document.getElementById("startTime").value = toDatetimeLocalValue(start);
         document.getElementById("endTime").value = toDatetimeLocalValue(end);
 
@@ -372,7 +339,6 @@ async function onServiceSelected() {
 
     calendarInstance.render();
   } else {
-    // Re-fetch busy blocks for current view after service changes
     const view = calendarInstance.view;
     await loadBusyBlocks(view.activeStart, view.activeEnd);
   }
@@ -381,18 +347,11 @@ async function onServiceSelected() {
 async function loadBusyBlocks(startDate, endDate) {
   calendarStatusEl.textContent = "Loading availability…";
 
-  // Clear previous busy state
   busyRanges = [];
   if (calendarInstance) {
-    // remove only busy events we added (className contains moon-busy)
-    const existing = calendarInstance.getEvents();
-    existing.forEach(ev => {
-      if ((ev.classNames || []).includes("moon-busy")) ev.remove();
-    });
+    calendarInstance.getEvents().forEach(ev => ev.remove());
   }
 
-  // Call your PUBLIC RPC which returns busy ranges (start/end only).
-  // We define it in the SQL section below.
   const { data, error } = await supabaseClient.rpc("get_public_busy_bookings", {
     p_start: startDate.toISOString(),
     p_end: endDate.toISOString()
@@ -403,7 +362,6 @@ async function loadBusyBlocks(startDate, endDate) {
     return;
   }
 
-  // Add busy blocks as background events (transparent red)
   data.forEach(r => {
     const s = new Date(r.scheduled_start);
     const e = new Date(r.scheduled_end);
@@ -457,7 +415,6 @@ document.getElementById("booking-form").addEventListener("submit", async e => {
     customerId = data[0].id;
   }
 
-  // REQUIRED: client UUID, NO SELECT (kept)
   const vehicleId = crypto.randomUUID();
 
   const { error: vehErr } = await supabaseClient.from("vehicles").insert([{
