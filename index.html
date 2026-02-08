@@ -97,10 +97,13 @@
   </main>
 
 <script>
-const SUPABASE_URL = "https://lhwlvleocakggpbbpzyx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-console.log("Script loaded ✅");
+  const SUPABASE_URL = "https://lhwlvleocakggpbbpzyx.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....";
+
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log("Client created for:", supabaseClient.supabaseUrl);
+</script>
+
 
 // DOM refs
 const vehicleSizeSelect = document.getElementById("vehicleSize");
