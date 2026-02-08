@@ -1,80 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Moon Auto Detailing — Booking</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f8f9fc;
-      color: #222;
-      margin: 0;
+    body{
+      font-family:'Inter',sans-serif;
+      background:#f7f9fc;
+      margin:0;
+      color:#222;
     }
-
-    header {
-      background-color: #000;
-      color: white;
-      padding: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    header{
+      background:#000;
+      color:#fff;
+      padding:1rem;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
     }
-
-    header h1 {
-      margin: 0;
-      color: #66a3ff;
+    header h1{margin:0;color:#66a3ff}
+    header img{height:45px}
+    main{
+      max-width:500px;
+      background:white;
+      margin:2rem auto;
+      padding:2rem;
+      border-radius:10px;
+      box-shadow:0 2px 8px rgba(0,0,0,.1);
     }
-
-    header img {
-      height: 45px;
+    h2{text-align:center;color:#007BFF}
+    form{display:flex;flex-direction:column;gap:1rem}
+    label{font-weight:600}
+    input,select{
+      padding:.6rem;
+      border:1px solid #ccc;
+      border-radius:6px;
+      font-size:1rem;
     }
-
-    main {
-      max-width: 500px;
-      margin: 2rem auto;
-      background-color: #fff;
-      padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    button{
+      background:#007BFF;
+      color:#fff;
+      padding:.8rem;
+      border:none;
+      border-radius:6px;
+      font-size:1rem;
+      cursor:pointer;
     }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    label {
-      font-weight: 600;
-    }
-    input, select {
-      padding: 0.6rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 1rem;
-    }
-
-    button {
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 0.8rem;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #005fcc;
-    }
-
-    #status {
-      text-align: center;
-      color: #007BFF;
-      margin-top: 1rem;
-      font-weight: 600;
+    button:hover{background:#005fcc}
+    #status{
+      text-align:center;
+      margin-top:1rem;
+      color:#007BFF;
+      font-weight:600;
     }
   </style>
 </head>
@@ -85,224 +64,149 @@
   </header>
 
   <main>
-    <h2>Book a Detailing Service</h2>
-
+    <h2>Book a Service</h2>
     <form id="bookingForm">
-      <label>Full Name
-        <input type="text" id="fullName" required>
-      </label>
+      <label>Full Name <input id="fullName" type="text" required></label>
+      <label>Email <input id="email" type="email" required></label>
+      <label>Phone <input id="phone" type="tel" required></label>
+      <label>Service Address <input id="address" type="text" required></label>
 
-      <label>Email
-        <input type="email" id="email" required>
-      </label>
+      <hr>
 
-      <label>Phone
-        <input type="tel" id="phone" required>
-      </label>
-
-      <label>Service Address
-        <input type="text" id="address" required>
-      </label>
-
-      <hr />
-
-      <label>Vehicle Year
-        <input type="number" id="vehicleYear" required>
-      </label>
-
-      <label>Vehicle Make
-        <input type="text" id="vehicleMake" required>
-      </label>
-
-      <label>Vehicle Model
-        <input type="text" id="vehicleModel" required>
-      </label>
-
+      <label>Vehicle Year <input id="vehicleYear" type="number" required></label>
+      <label>Vehicle Make <input id="vehicleMake" type="text" required></label>
+      <label>Vehicle Model <input id="vehicleModel" type="text" required></label>
       <label>Vehicle Size
         <select id="vehicleSize" required>
-          <option value="">-- Choose Size --</option>
+          <option value="">-- Select Size --</option>
           <option value="compact">Compact</option>
           <option value="midsized">Midsized</option>
           <option value="oversized">Oversized</option>
         </select>
       </label>
-
       <label>Select Service
         <select id="serviceSelect" required>
           <option value="">Select vehicle size first</option>
         </select>
       </label>
-
-      <label>Start Date & Time
-        <input type="datetime-local" id="startTime" required>
-      </label>
-
-      <label>End Date & Time
-        <input type="datetime-local" id="endTime" required>
-      </label>
-
+      <label>Start Date &amp; Time <input id="startTime" type="datetime-local" required></label>
+      <label>End Date &amp; Time <input id="endTime" type="datetime-local" required></label>
       <button type="submit">Submit Booking</button>
     </form>
-
     <div id="status"></div>
   </main>
 
-  <script>
-    const SUPABASE_URL = "https://lhwlvleocakggpbbpzyx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log("Script loaded ✅");
+<script>
+const SUPABASE_URL = "https://lhwlvleocakggpbbpzyx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+console.log("Script loaded ✅");
 
-    const vehicleSizeSelect = document.getElementById("vehicleSize");
-    const serviceSelect = document.getElementById("serviceSelect");
-    const bookingForm = document.getElementById("bookingForm");
-    const statusDiv = document.getElementById("status");
+// DOM refs
+const vehicleSizeSelect = document.getElementById("vehicleSize");
+const serviceSelect = document.getElementById("serviceSelect");
+const bookingForm = document.getElementById("bookingForm");
+const statusDiv = document.getElementById("status");
 
-    // Load services when vehicle size changes
-    vehicleSizeSelect.addEventListener("change", async (e) => {
-      const size = e.target.value.toLowerCase();
-      serviceSelect.innerHTML = `<option>Loading services...</option>`;
-      console.log("Vehicle size changed ✅", size);
+// ----- STEP 1: load services after size selection -----
+vehicleSizeSelect.addEventListener("change", async (e)=>{
+  const size = e.target.value.toLowerCase();
+  serviceSelect.innerHTML = `<option>Loading...</option>`;
+  console.log("Vehicle size changed ✅", size);
 
-      // --- Stable inner join query ---
-      const { data, error } = await supabaseClient
-        .from("service_variants")
-        .select(`
-          id,
-          vehicle_size,
-          price,
-          duration_minutes,
-          service_id,
-          services:service_id!inner (
-            category,
-            level
-          )
-        `)
-        .eq("vehicle_size", size)
-        .eq("active", true);
+  // Fetch variants for that size
+  const {data:variants, error:vErr} = await supabaseClient
+    .from("service_variants")
+    .select("id, service_id, vehicle_size, price, duration_minutes")
+    .eq("vehicle_size", size)
+    .eq("active", true);
 
-      if (error) {
-        console.error(error);
-        serviceSelect.innerHTML = `<option>Error loading services</option>`;
-        return;
-      }
+  if(vErr){ console.error(vErr); serviceSelect.innerHTML = `<option>Error loading</option>`; return; }
 
-      console.log("Supabase returned ✅", data.length);
-      console.table(data.map(d => ({
-        id: d.id,
-        category: d.services?.category,
-        level: d.services?.level
-      })));
+  if(!variants || variants.length===0){
+    serviceSelect.innerHTML = `<option>No variants for that size</option>`;
+    return;
+  }
 
-      if (!data || data.length === 0) {
-        serviceSelect.innerHTML = `<option>No services available</option>`;
-        return;
-      }
+  // Collect service_ids and fetch services
+  const serviceIds = variants.map(v=>v.service_id);
+  const {data:services, error:sErr} = await supabaseClient
+    .from("services")
+    .select("id, category, level")
+    .in("id", serviceIds);
 
-      serviceSelect.innerHTML = "";
-      data.forEach(row => {
-        const category = row.services?.category;
-        const level = row.services?.level;
-        if (!category || !level) return;
-        const opt = document.createElement("option");
-        opt.value = row.id;
-        opt.textContent = `${category} (Level ${level}) — $${row.price}`;
-        serviceSelect.appendChild(opt);
-      });
+  if(sErr){ console.error(sErr); serviceSelect.innerHTML = `<option>Error loading services</option>`; return; }
 
-      if (serviceSelect.options.length === 0) {
-        serviceSelect.innerHTML = `<option>No valid services</option>`;
-      }
-    });
+  // Merge by service_id
+  const merged = variants.map(v=>{
+    const svc = services.find(s=>s.id===v.service_id);
+    return {...v, category:svc?.category??"Unknown", level:svc?.level??"?"};
+  });
 
-    // Handle form submission
-    bookingForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      statusDiv.textContent = "Submitting booking...";
+  serviceSelect.innerHTML="";
+  merged.forEach(m=>{
+    const opt=document.createElement("option");
+    opt.value=m.id;
+    opt.textContent=`${m.category} (Level ${m.level}) — $${m.price}`;
+    serviceSelect.appendChild(opt);
+  });
+  if(serviceSelect.options.length===0)
+    serviceSelect.innerHTML=`<option>No valid services</option>`;
+  console.log("Loaded services ✅", merged.length);
+});
 
-      const full_name = document.getElementById("fullName").value.trim();
-      const email = document.getElementById("email").value.trim();
-      const phone = document.getElementById("phone").value.trim();
-      const address = document.getElementById("address").value.trim();
+// ----- STEP 2: handle booking submission -----
+bookingForm.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  statusDiv.textContent="Submitting booking...";
+  const full_name=document.getElementById("fullName").value.trim();
+  const email=document.getElementById("email").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const address=document.getElementById("address").value.trim();
+  const vehicle_year=parseInt(document.getElementById("vehicleYear").value);
+  const vehicle_make=document.getElementById("vehicleMake").value.trim();
+  const vehicle_model=document.getElementById("vehicleModel").value.trim();
+  const vehicle_size=document.getElementById("vehicleSize").value.toLowerCase();
+  const service_variant_id=document.getElementById("serviceSelect").value;
+  const scheduled_start=document.getElementById("startTime").value;
+  const scheduled_end=document.getElementById("endTime").value;
+  const service_address=address;
 
-      const vehicle_year = parseInt(document.getElementById("vehicleYear").value);
-      const vehicle_make = document.getElementById("vehicleMake").value.trim();
-      const vehicle_model = document.getElementById("vehicleModel").value.trim();
-      const vehicle_size = document.getElementById("vehicleSize").value.toLowerCase();
-      const service_variant_id = document.getElementById("serviceSelect").value;
+  // --- customer lookup/insert ---
+  const {data:existing}=await supabaseClient
+    .from("customers").select("id").eq("email",email).limit(1);
 
-      const scheduled_start = document.getElementById("startTime").value;
-      const scheduled_end = document.getElementById("endTime").value;
-      const service_address = address;
+  let customerId;
+  if(existing && existing.length>0){
+    customerId=existing[0].id;
+  }else{
+    const {data:newCust,error:cErr}=await supabaseClient
+      .from("customers")
+      .insert([{full_name,email,phone,address}])
+      .select("id")
+      .single();
+    if(cErr){statusDiv.textContent="Error creating customer";console.error(cErr);return;}
+    customerId=newCust.id;
+  }
 
-      // --- Check or create customer ---
-      const { data: existingCustomer } = await supabaseClient
-        .from("customers")
-        .select("id")
-        .eq("email", email)
-        .limit(1);
+  // --- vehicle insert ---
+  const vehicleId=crypto.randomUUID();
+  const {error:vErr}=await supabaseClient.from("vehicles").insert([{
+    id:vehicleId,customer_id:customerId,vehicle_size,
+    license_plate:"",vehicle_year,vehicle_make,vehicle_model
+  }]);
+  if(vErr){statusDiv.textContent="Error adding vehicle";console.error(vErr);return;}
 
-      let customerId;
-      if (existingCustomer && existingCustomer.length > 0) {
-        customerId = existingCustomer[0].id;
-      } else {
-        const { data: newCust, error: custErr } = await supabaseClient
-          .from("customers")
-          .insert([{ full_name, email, phone, address }])
-          .select("id")
-          .single();
+  // --- booking insert ---
+  const {error:bErr}=await supabaseClient.from("bookings").insert([{
+    customer_id:customerId,vehicle_id:vehicleId,service_variant_id,
+    service_address,scheduled_start,scheduled_end,status:"pending"
+  }]);
+  if(bErr){statusDiv.textContent="Error creating booking";console.error(bErr);return;}
 
-        if (custErr) {
-          console.error(custErr);
-          statusDiv.textContent = "Error: Unable to create customer record.";
-          return;
-        }
-
-        customerId = newCust.id;
-      }
-
-      // --- Insert vehicle ---
-      const vehicleId = crypto.randomUUID();
-      const { error: vehicleErr } = await supabaseClient
-        .from("vehicles")
-        .insert([{
-          id: vehicleId,
-          customer_id: customerId,
-          vehicle_size,
-          license_plate: "",
-          vehicle_year,
-          vehicle_make,
-          vehicle_model
-        }]);
-
-      if (vehicleErr) {
-        console.error(vehicleErr);
-        statusDiv.textContent = "Error: Vehicle insert failed.";
-        return;
-      }
-
-      // --- Insert booking ---
-      const { error: bookingErr } = await supabaseClient
-        .from("bookings")
-        .insert([{
-          customer_id: customerId,
-          vehicle_id: vehicleId,
-          service_variant_id,
-          service_address,
-          scheduled_start,
-          scheduled_end,
-          status: "pending"
-        }]);
-
-      if (bookingErr) {
-        console.error(bookingErr);
-        statusDiv.textContent = "Error: Booking insert failed.";
-        return;
-      }
-
-      statusDiv.textContent = "Booking submitted successfully!";
-      bookingForm.reset();
-    });
-  </script>
+  statusDiv.textContent="✅ Booking submitted successfully!";
+  bookingForm.reset();
+});
+</script>
 </body>
 </html>
