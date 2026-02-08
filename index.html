@@ -1,454 +1,419 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Moon Auto Detailing – Book Now</title>
+async function resolveQuote() {
+  if (!selectedVehicleSize || !selectedServiceType) return;
 
-  <!-- Supabase JS v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- FullCalendar (CDN) -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-
-  <style>
-    :root{
-      --moon-blue:#4f8de6;
-      --moon-blue-dark:#3e7bd6;
-      --bg:#f5f7fb;
-      --card:#ffffff;
-      --text:#111827;
-      --muted:#6b7280;
-      --border:#d6dbe3;
-      --shadow: 0 10px 25px rgba(0,0,0,0.08);
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
-    .topbar{
-      background:#0b0b0b;
-      height:70px;
-      display:flex;
-      align-items:center;
-      justify-content:flex-end;
-      padding:0 18px;
-    }
-    .topbar img{ height:44px; }
-    .wrap{ padding:34px 16px 60px; }
-    .card{
-      max-width:560px;
-      margin:0 auto;
-      background:#fff;
-      border-radius:14px;
-      box-shadow:var(--shadow);
-      padding:28px;
-    }
-    h1{
-      text-align:center;
-      color:var(--moon-blue);
-      font-size:42px;
-      margin-bottom:22px;
-    }
-    label{
-      font-weight:700;
-      display:block;
-      margin:16px 0 8px;
-    }
-    input, select{
-      width:100%;
-      padding:12px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      font-size:15px;
-    }
-    .row{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-    }
-    .btn{
-      margin-top:22px;
-      padding:14px;
-      border-radius:12px;
-      border:none;
-      background:var(--moon-blue);
-      color:#fff;
-      font-size:16px;
-      font-weight:800;
-      cursor:pointer;
-    }
-    .status{
-      margin-top:14px;
-      font-size:14px;
-      color:var(--muted);
-      white-space:pre-wrap;
-    }
-    @media (max-width:520px){
-      .row{ grid-template-columns:1fr; }
-      h1{ font-size:34px; }
-    }
-
-    /* Calendar block */
-    #calendarWrap{
-      margin-top:18px;
-      padding-top:10px;
-      border-top:1px solid var(--border);
-      display:none; /* hidden until service selected */
-    }
-    #calendarStatus{
-      margin-top:8px;
-      font-size:13px;
-      color:var(--muted);
-      white-space:pre-wrap;
-    }
-
-    /* Make "busy" blocks more visible (transparent red) */
-    .fc .moon-busy {
-      background: rgba(255, 0, 0, 0.22) !important;
-      border-color: rgba(255, 0, 0, 0.35) !important;
-    }
-
-    .fc .fc-timegrid-slot {
-      border-color: rgba(0,0,0,0.08);
-    }
-  </style>
-</head>
-
-<body>
-  <div class="topbar">
-    <img src="NewLogoColor.png" alt="Moon Auto Detailing" />
-  </div>
-
-  <div class="wrap">
-    <div class="card">
-      <h1>Book a Detail</h1>
-
-      <form id="booking-form">
-        <label>Full Name</label>
-        <input id="fullName" required />
-
-        <label>Email</label>
-        <input id="email" type="email" required />
-
-        <label>Phone</label>
-        <input id="phone" required />
-
-        <label>Service Address</label>
-        <input id="address" required />
-
-        <div class="row">
-          <div>
-            <label>Vehicle Year</label>
-            <input id="vehicleYear" type="number" required />
-          </div>
-          <div>
-            <label>License Plate</label>
-            <input id="licensePlate" required />
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label>Vehicle Make</label>
-            <input id="vehicleMake" required />
-          </div>
-          <div>
-            <label>Vehicle Model</label>
-            <input id="vehicleModel" required />
-          </div>
-        </div>
-
-        <label>Vehicle Size</label>
-        <select id="vehicleSize" required>
-          <option value="">Select size</option>
-          <option value="compact">compact</option>
-          <option value="midsized">midsized</option>
-          <option value="oversized">oversized</option>
-        </select>
-
-        <label>Select Service</label>
-        <select id="serviceSelect" disabled required>
-          <option value="">Select vehicle size first</option>
-        </select>
-
-        <!-- Keep your existing fields so the booking insert stays identical.
-             We auto-fill these when the calendar time is clicked. -->
-        <label>Start</label>
-        <input id="startTime" type="datetime-local" required />
-
-        <label>End</label>
-        <input id="endTime" type="datetime-local" required />
-
-        <!-- Calendar (hidden until service selected) -->
-        <div id="calendarWrap">
-          <label>Availability (click a time)</label>
-          <div id="calendar"></div>
-          <div id="calendarStatus"></div>
-        </div>
-
-        <button class="btn">Submit Booking</button>
-        <div id="status" class="status"></div>
-      </form>
-    </div>
-  </div>
-
-<script>
-const supabaseClient = supabase.createClient(
-  "https://lhwlvleocakggpbbpzyx.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmJzZSIsInJlZiI6Imxod2x2bGVvY2FrZ2dwYmJwenl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NTQwMDksImV4cCI6MjA4NjAzMDAwOX0.VXGGO7KCqWmcpXOFrlpPT92WmZMxe8xpNNytAsdjURI"
-);
-
-const vehicleSizeEl = document.getElementById("vehicleSize");
-const serviceSelectEl = document.getElementById("serviceSelect");
-const statusEl = document.getElementById("status");
-
-const calendarWrapEl = document.getElementById("calendarWrap");
-const calendarStatusEl = document.getElementById("calendarStatus");
-
-let calendarInstance = null;
-let selectedServiceDurationMins = null;
-let busyRanges = []; // [{start: Date, end: Date}]
-
-vehicleSizeEl.addEventListener("change", loadServices);
-serviceSelectEl.addEventListener("change", onServiceSelected);
-
-// Helper: datetime-local string (local time)
-function toDatetimeLocalValue(d) {
-  const pad = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-// Helper: overlap check
-function overlaps(startA, endA, startB, endB) {
-  return startA < endB && endA > startB;
-}
-
-async function loadServices() {
-  serviceSelectEl.disabled = true;
-  serviceSelectEl.innerHTML = "";
-  selectedServiceDurationMins = null;
-  calendarWrapEl.style.display = "none";
-  calendarStatusEl.textContent = "";
-
-  // also clear busy blocks visually if calendar exists
-  busyRanges = [];
-  if (calendarInstance) {
-    calendarInstance.getEvents().forEach(ev => ev.remove());
-  }
-
-  const size = vehicleSizeEl.value;
-  if (!size) return;
-
-  const { data, error } = await supabaseClient
-    .from("service_variants")
-    .select(`
-      id,
-      price,
-      duration_minutes,
-      services (
-        category,
-        level
-      )
-    `)
-    .eq("vehicle_size", size)
-    .eq("active", true);
+  const { data, error } = await supabase
+    .from("service_pricing")
+    .select("duration_minutes, price_cents")
+    .eq("vehicle_size", selectedVehicleSize)
+    .eq("service_type", selectedServiceType)
+    .eq("is_active", true)
+    .maybeSingle();
 
   if (error) {
-    statusEl.textContent = "Error loading services: " + error.message;
+    console.error("Service pricing lookup failed:", error);
     return;
   }
 
-  serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
-
-  data.forEach(r => {
-    if (!r.services) return; // skip broken rows safely
-
-    const opt = document.createElement("option");
-    opt.value = r.id;
-    opt.textContent =
-      `${r.services.category} – Level ${r.services.level} ($${r.price}) • ${r.duration_minutes} min`;
-    opt.dataset.duration = String(r.duration_minutes);
-    serviceSelectEl.appendChild(opt);
-  });
-
-  serviceSelectEl.disabled = false;
-}
-
-async function onServiceSelected() {
-  const selectedOpt = serviceSelectEl.options[serviceSelectEl.selectedIndex];
-  const serviceId = serviceSelectEl.value;
-
-  selectedServiceDurationMins = null;
-  calendarWrapEl.style.display = "none";
-  calendarStatusEl.textContent = "";
-
-  if (!serviceId) return;
-
-  const dur = Number(selectedOpt.dataset.duration || "");
-  if (!Number.isFinite(dur) || dur <= 0) {
-    statusEl.textContent = "Service duration missing/invalid. Check service_variants.duration_minutes.";
+  if (!data) {
+    console.warn(
+      "No pricing configured for:",
+      selectedVehicleSize,
+      selectedServiceType
+    );
     return;
   }
-  selectedServiceDurationMins = dur;
 
-  calendarWrapEl.style.display = "block";
+  resolvedDurationMinutes = data.duration_minutes;
+  resolvedPriceCents = data.price_cents;
 
-  if (!calendarInstance) {
-    calendarInstance = new FullCalendar.Calendar(document.getElementById("calendar"), {
-      initialView: "timeGridWeek",
-      nowIndicator: true,
-      allDaySlot: false,
-      slotMinTime: "08:00:00",
-      slotMaxTime: "17:00:00",
-      slotDuration: "00:15:00",
-      selectable: true,
-      headerToolbar: {
-        left: "prev,next today",
-        center: "title",
-        right: "timeGridWeek,timeGridDay"
-      },
-      datesSet: async (info) => {
-        await loadBusyBlocks(info.start, info.end);
-      },
-      dateClick: (info) => {
-        if (!selectedServiceDurationMins) {
-          calendarStatusEl.textContent = "Select a service first.";
-          return;
-        }
+  durationText.textContent = formatDuration(resolvedDurationMinutes);
+  priceText.textContent = formatPrice(resolvedPriceCents);
 
-        const start = new Date(info.date);
-        const end = new Date(start.getTime() + selectedServiceDurationMins * 60 * 1000);
+  quoteBox.style.display = "block";
 
-        for (const b of busyRanges) {
-          if (overlaps(start, end, b.start, b.end)) {
-            calendarStatusEl.textContent = "That time is not available. Pick a different slot.";
-            return;
-          }
-        }
-
-        document.getElementById("startTime").value = toDatetimeLocalValue(start);
-        document.getElementById("endTime").value = toDatetimeLocalValue(end);
-
-        calendarStatusEl.textContent = `Selected: ${start.toLocaleString()} → ${end.toLocaleString()}`;
-      }
-    });
-
-    calendarInstance.render();
-  } else {
-    const view = calendarInstance.view;
-    await loadBusyBlocks(view.activeStart, view.activeEnd);
-  }
+  tryUnlockCalendar();
 }
 
-async function loadBusyBlocks(startDate, endDate) {
-  calendarStatusEl.textContent = "Loading availability…";
+function tryUnlockCalendar() {
+  const ready =
+    selectedVehicleSize &&
+    selectedServiceType &&
+    Number.isInteger(resolvedDurationMinutes);
 
-  busyRanges = [];
-  if (calendarInstance) {
-    calendarInstance.getEvents().forEach(ev => ev.remove());
+  if (!ready) {
+    calendarSection.style.display = "none";
+    return;
   }
 
-  const { data, error } = await supabaseClient.rpc("get_public_busy_bookings", {
-    p_start: startDate.toISOString(),
-    p_end: endDate.toISOString()
-  });
+  calendarSection.style.display = "block";
+
+  // Hook into your EXISTING calendar logic here
+  // Example:
+  // updateCalendarWithDuration(resolvedDurationMinutes);
+}
+
+
+async function fetchBookingsForDay(dateISO) {
+  const dayStart = new Date(dateISO);
+  dayStart.setHours(0, 0, 0, 0);
+
+  const dayEnd = new Date(dateISO);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("start_time, end_time")
+    .gte("start_time", dayStart.toISOString())
+    .lte("start_time", dayEnd.toISOString());
 
   if (error) {
-    calendarStatusEl.textContent = "Availability error: " + error.message;
-    return;
+    console.error("Failed to fetch bookings:", error);
+    return [];
   }
 
-  data.forEach(r => {
-    const s = new Date(r.scheduled_start);
-    const e = new Date(r.scheduled_end);
-    busyRanges.push({ start: s, end: e });
-
-    if (calendarInstance) {
-      calendarInstance.addEvent({
-        start: r.scheduled_start,
-        end: r.scheduled_end,
-        display: "background",
-        className: "moon-busy"
-      });
-    }
-  });
-
-  calendarStatusEl.textContent = "Click an available time to select it.";
+  return data;
 }
 
-document.getElementById("booking-form").addEventListener("submit", async e => {
-  e.preventDefault();
-  statusEl.textContent = "Submitting…";
 
-  const email = document.getElementById("email").value.trim().toLowerCase();
+function generateTimeSlots(dateISO) {
+  const slots = [];
 
-  const { data: cust, error: custErr } = await supabaseClient
-    .from("customers")
-    .select("id")
-    .eq("email", email)
-    .limit(1);
+  const startHour = 8;
+  const endHour = 18;
+  const intervalMinutes = 30;
 
-  if (custErr) {
-    statusEl.textContent = "Customer lookup error: " + custErr.message;
-    return;
-  }
+  const baseDate = new Date(dateISO);
+  baseDate.setHours(0, 0, 0, 0);
 
-  let customerId;
-  if (cust.length) customerId = cust[0].id;
-  else {
-    const { data, error } = await supabaseClient.from("customers").insert([{
-      full_name: fullName.value,
-      email,
-      phone: phone.value,
-      address: address.value
-    }]);
-
-    if (error) {
-      statusEl.textContent = "Customer insert error: " + error.message;
-      return;
+  for (let hour = startHour; hour < endHour; hour++) {
+    for (let min = 0; min < 60; min += intervalMinutes) {
+      const slot = new Date(baseDate);
+      slot.setHours(hour, min, 0, 0);
+      slots.push(slot);
     }
-
-    customerId = data[0].id;
   }
 
-  const vehicleId = crypto.randomUUID();
+  return slots;
+}
 
-  const { error: vehErr } = await supabaseClient.from("vehicles").insert([{
-    id: vehicleId,
-    customer_id: customerId,
-    vehicle_size: vehicleSize.value,
-    license_plate: licensePlate.value,
-    vehicle_year: Number(vehicleYear.value),
-    vehicle_make: vehicleMake.value,
-    vehicle_model: vehicleModel.value
-  }]);
 
-  if (vehErr) {
-    statusEl.textContent = "Vehicle insert error: " + vehErr.message;
+                                    function isSlotAvailable(slotStart, durationMinutes, bookings) {
+  const slotEnd = new Date(slotStart);
+  slotEnd.setMinutes(slotEnd.getMinutes() + durationMinutes);
+
+  for (const booking of bookings) {
+    const bookingStart = new Date(booking.start_time);
+    const bookingEnd = new Date(booking.end_time);
+
+    const overlaps =
+      slotStart < bookingEnd && slotEnd > bookingStart;
+
+    if (overlaps) return false;
+  }
+
+  return true;
+}
+
+
+    async function buildAvailabilityForDate(dateISO) {
+  if (!Number.isInteger(resolvedDurationMinutes)) {
+    console.warn("Duration not resolved — calendar locked");
     return;
   }
 
-  const { error: bookErr } = await supabaseClient.from("bookings").insert([{
-    customer_id: customerId,
-    vehicle_id: vehicleId,
-    service_variant_id: serviceSelect.value,
-    service_address: address.value,
-    scheduled_start: startTime.value,
-    scheduled_end: endTime.value,
-    status: "pending"
-  }]);
+  const bookings = await fetchBookingsForDay(dateISO);
+  const slots = generateTimeSlots(dateISO);
 
-  if (bookErr) {
-    statusEl.textContent = "Booking insert error: " + bookErr.message;
+  const availability = slots.map(slot => ({
+    start: slot,
+    available: isSlotAvailable(
+      slot,
+      resolvedDurationMinutes,
+      bookings
+    )
+  }));
+
+  renderCalendar(availability);
+}
+
+    function renderCalendar(availability) {
+  availability.forEach(slot => {
+    if (slot.available) {
+      // render clickable slot
+    } else {
+      // render blocked/disabled slot
+    }
+  });
+}
+
+    function handleSlotClick(slotStart) {
+  const start = new Date(slotStart);
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + resolvedDurationMinutes);
+
+  // Store these for booking insert (unchanged)
+  selectedStartTime = start.toISOString();
+  selectedEndTime = end.toISOString();
+}
+
+    const uiState = {
+  quoteStatus: "idle",        // idle | loading | ready | error
+  calendarStatus: "locked",   // locked | loading | ready | error
+};
+
+
+    <section id="calendarSection" style="display:none;">
+  <div id="calendarLoading" style="display:none;">
+    Loading availability…
+  </div>
+
+  <div id="calendarError" style="display:none;">
+    Unable to load availability. Please try again.
+  </div>
+
+  <div id="calendar"></div>
+</section>
+
+
+    async function resolveQuote() {
+  if (!selectedVehicleSize || !selectedServiceType) return;
+
+  uiState.quoteStatus = "loading";
+  quoteBox.style.display = "none";
+  calendarSection.style.display = "none";
+
+  const { data, error } = await supabase
+    .from("service_pricing")
+    .select("duration_minutes, price_cents")
+    .eq("vehicle_size", selectedVehicleSize)
+    .eq("service_type", selectedServiceType)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error || !data) {
+    uiState.quoteStatus = "error";
+    console.error("Quote resolution failed", error);
     return;
   }
 
-  statusEl.textContent = "✅ Booking submitted successfully.";
-});
-</script>
-</body>
-</html>
+  resolvedDurationMinutes = data.duration_minutes;
+  resolvedPriceCents = data.price_cents;
+
+  durationText.textContent = formatDuration(resolvedDurationMinutes);
+  priceText.textContent = formatPrice(resolvedPriceCents);
+
+  quoteBox.style.display = "block";
+  uiState.quoteStatus = "ready";
+
+  tryUnlockCalendar();
+}
+
+
+    function tryUnlockCalendar() {
+  const ready =
+    uiState.quoteStatus === "ready" &&
+    Number.isInteger(resolvedDurationMinutes);
+
+  if (!ready) {
+    uiState.calendarStatus = "locked";
+    calendarSection.style.display = "none";
+    return;
+  }
+
+  calendarSection.style.display = "block";
+  uiState.calendarStatus = "loading";
+
+  loadCalendarForSelectedDate();
+}
+
+
+    async function loadCalendarForSelectedDate() {
+  const loadingEl = document.getElementById("calendarLoading");
+  const errorEl = document.getElementById("calendarError");
+
+  loadingEl.style.display = "block";
+  errorEl.style.display = "none";
+
+  try {
+    await buildAvailabilityForDate(selectedDateISO);
+    uiState.calendarStatus = "ready";
+  } catch (err) {
+    console.error("Calendar availability failed", err);
+    uiState.calendarStatus = "error";
+    errorEl.style.display = "block";
+  } finally {
+    loadingEl.style.display = "none";
+  }
+}
+
+
+    function handleSlotClick(slotStart) {
+  if (uiState.calendarStatus !== "ready") return;
+
+  const start = new Date(slotStart);
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + resolvedDurationMinutes);
+
+  selectedStartTime = start.toISOString();
+  selectedEndTime = end.toISOString();
+}
+
+
+    function resetDownstreamState() {
+  resolvedDurationMinutes = null;
+  resolvedPriceCents = null;
+
+  uiState.quoteStatus = "idle";
+  uiState.calendarStatus = "locked";
+
+  quoteBox.style.display = "none";
+  calendarSection.style.display = "none";
+}
+
+    effectiveDurationMinutes =
+  baseServiceDurationMinutes
++ travelPaddingMinutes
+
+
+    let baseDurationMinutes = null;        // from DB
+let travelPaddingMinutes = 0;          // dynamic later
+let effectiveDurationMinutes = null;   // what calendar uses
+
+
+    baseDurationMinutes = data.duration_minutes;
+resolvedPriceCents = data.price_cents;
+
+// travel padding will be computed later
+travelPaddingMinutes = 0;
+
+effectiveDurationMinutes =
+  baseDurationMinutes + travelPaddingMinutes;
+
+durationText.textContent =
+  formatDuration(baseDurationMinutes); // IMPORTANT: show base duration only
+
+priceText.textContent = formatPrice(resolvedPriceCents);
+
+quoteBox.style.display = "block";
+uiState.quoteStatus = "ready";
+
+tryUnlockCalendar();
+
+    Number.isInteger(effectiveDurationMinutes)
+
+    function tryUnlockCalendar() {
+  const ready =
+    uiState.quoteStatus === "ready" &&
+    Number.isInteger(effectiveDurationMinutes);
+
+  if (!ready) {
+    uiState.calendarStatus = "locked";
+    calendarSection.style.display = "none";
+    return;
+  }
+
+  calendarSection.style.display = "block";
+  uiState.calendarStatus = "loading";
+
+  loadCalendarForSelectedDate();
+}
+
+
+    function isSlotAvailable(slotStart, bookings) {
+  const slotEnd = new Date(slotStart);
+  slotEnd.setMinutes(
+    slotEnd.getMinutes() + effectiveDurationMinutes
+  );
+
+  for (const booking of bookings) {
+    const bookingStart = new Date(booking.start_time);
+    const bookingEnd = new Date(booking.end_time);
+
+    if (slotStart < bookingEnd && slotEnd > bookingStart) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+      function handleSlotClick(slotStart) {
+  if (uiState.calendarStatus !== "ready") return;
+
+  const start = new Date(slotStart);
+  const end = new Date(start);
+  end.setMinutes(
+    end.getMinutes() + effectiveDurationMinutes
+  );
+
+  selectedStartTime = start.toISOString();
+  selectedEndTime = end.toISOString();
+}
+
+      async function calculateTravelPadding(customerAddress) {
+  // later:
+  // - call Google Distance Matrix
+  // - compute minutes
+  // - round up to buffer rules
+  // return integer minutes
+}
+
+      travelPaddingMinutes = await calculateTravelPadding(address);
+effectiveDurationMinutes =
+  baseDurationMinutes + travelPaddingMinutes;
+
+tryUnlockCalendar();
+
+
+      .from("bookings")
+.select("start_time, end_time")
+.eq("status", "confirmed")
+...
+
+
+      async function fetchBookingsForDay(dateISO) {
+  const dayStart = new Date(dateISO);
+  dayStart.setHours(0, 0, 0, 0);
+
+  const dayEnd = new Date(dateISO);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("scheduled_start, scheduled_end")
+    .eq("status", "confirmed") // if applicable
+    .gte("scheduled_start", dayStart.toISOString())
+    .lte("scheduled_start", dayEnd.toISOString());
+
+  if (error) {
+    console.error("Failed to fetch bookings:", error);
+    return [];
+  }
+
+  return data;
+}
+
+
+      function isSlotAvailable(slotStart, bookings) {
+  const slotEnd = new Date(slotStart);
+  slotEnd.setMinutes(
+    slotEnd.getMinutes() + effectiveDurationMinutes
+  );
+
+  for (const booking of bookings) {
+    const bookingStart = new Date(booking.scheduled_start);
+    const bookingEnd = new Date(booking.scheduled_end);
+
+    if (slotStart < bookingEnd && slotEnd > bookingStart) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+      if (error?.code === "23P01") {
+  // Show user: "That time was just booked. Please select another slot."
+}
