@@ -266,14 +266,15 @@ async function loadServices() {
 
   serviceSelectEl.innerHTML = `<option value="">Select service</option>`;
   data.forEach(r => {
-    const opt = document.createElement("option");
-    opt.value = r.id;
-    // match your desired label format (includes duration)
-    opt.textContent = `${r.services.category} – Level ${r.services.level} ($${r.price}) • ${r.duration_minutes} min`;
-    // store duration on the option so we don't re-query later
-    opt.dataset.duration = String(r.duration_minutes);
-    serviceSelectEl.appendChild(opt);
-  });
+  if (!r.services) return; // ⬅️ skip broken FK rows
+
+  const opt = document.createElement("option");
+  opt.value = r.id;
+  opt.textContent =
+    `${r.services.category} – Level ${r.services.level} ($${r.price}) • ${r.duration_minutes} min`;
+  opt.dataset.duration = String(r.duration_minutes);
+  serviceSelectEl.appendChild(opt);
+});
 
   serviceSelectEl.disabled = false;
 }
